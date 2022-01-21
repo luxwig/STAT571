@@ -163,21 +163,57 @@ Notice the data came in as an Excel file. We need to use the package `readxl` an
 
 
 i. Read the data into R.
+
+```{r read data, echo = FALSE, warning = FALSE}
+wsci <- read_excel("data/WomenData_06_16.xlsx")
+```
+
 ii. Clean the names of each variables. (Change variable names to  `Field`,`Degree`, `Sex`, `Year` and `Number` )
+
+```{r change names}
+wsci <- wsci %>%
+  rename(Field = 'Field and sex',
+         Number = 'Degrees Awarded')
+```
+
 iii. Set the variable natures properly. 
+
+```{r factorization}
+wsci <- wsci %>%
+  mutate(Field   = as.factor(Field),
+         Degree  = as.factor(Degree),
+         Sex     = as.factor(Sex))
+```
+
 iv. Any missing values?
+```{r check missing vals}
+sapply(wsci, function(x) length(x[is.na(wsci)]))
+```
+There is no missing values.
 
 2. Write a summary describing the data set provided here. 
 
+```{r summary}
+skimr::skim(wsci)
+hist(wsci$Year)
+```
 i. How many fields are there in this data?
-ii. What are the degree types? 
-iii. How many year's statistics are being reported here? 
+There are 5 fields.
 
+ii. What are the degree types? 
+There are are 3 degree types
+
+iii. How many year's statistics are being reported here? 
+The data are reported from 2006 to 2016, 11 years in total
 
 
 ## BS degrees in 2015
 
 Is there evidence that more males are in science-related fields vs `Non-S&E`? Provide summary statistics and a plot which shows the number of people by gender and by field. Write a brief summary to describe your findings.
+
+```{r}
+
+```
 
 ## EDA bringing type of degree, field and gender in 2015
 
@@ -201,19 +237,6 @@ To help out, we have included some R-codes here as references. You should make y
 
 1. Clean data
 
-```{r data wrangling, echo = FALSE, warning = FALSE}
-# For the demonstration purpose, we show this R-chunk by taking echo=TRUE
-# In your final report you should hide all the R-chunks to keep your report flowing well.
-wsci <- read_excel("WomenData_06_16.xlsx")
-names(wsci)
-head(wsci)
-#change names
-wsci %<>% 
-  rename(Field = 'Field and sex')
-# set the field, degree and sex as factors
-wsci %<>% 
-  mutate( Field = as.factor(Field))
-```
 
 
 ```{r, echo=FALSE}
