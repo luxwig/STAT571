@@ -279,7 +279,7 @@ The data are reported from 2006 to 2016, 11 years in total
 Is there evidence that more males are in science-related fields vs `Non-S&E`? Provide summary statistics and a plot which shows the number of people by gender and by field. Write a brief summary to describe your findings.
 
 ```{r}
-
+# some changes are done here 
 ```
 
 ## EDA bringing type of degree, field and gender in 2015
