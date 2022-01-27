@@ -257,6 +257,7 @@ radio %>%
   summarise(cnt = n()) %>% 
   mutate(freq = cnt / sum(cnt)) %>% 
   arrange(desc(freq))
+
 #our sample is 57.5% male and 42.5% female. Given the national sample and MTurk sample, our sample has sligtly more male than female.
 
 #About 30% of people on MTurm are in their 20s, 37% of people are in their 30’s, another 17% are in their 40’s, and roughly 11% are in their 50’s
@@ -298,11 +299,22 @@ To be specific, you should include:
 2. Method used: data gathering, estimation methods
 3. Findings
 4. Limitations of the study. 
+M = Male
+X = Listen to Wharton
+P = P(X|M)P(M) + P(X|-M)P(-M)
 
 ```{r, echo = FALSE, warning = FALSE}
 # the goal is to estimate the proportion of the Wharton listeners to that of the Sirius listener, so that we will come up with an audience size estimate of approximately 51.6 million times
 sum(radio$wharton == "Yes")/sum(radio$sirius == "Yes") * 51.6
 #2.48 million
+radio$wharton <- as.factor(radio$wharton)
+summary(glm(wharton ~ income + age + education + age, data = radio,family = "binomial"))
+#calculate four categories with possibilities
+P_XM <- sum(radio$gender == "Male" & radio$wharton == "Yes")/nrow(radio)
+P_M <- 0.43 # percentage of male participants on MTurk 
+P_XNM <- sum(radio$gender == "Female" & radio$wharton == "Yes")/nrow(radio)
+P_NM <- 0.57 # percentage of female participants on MTurk
+P_total <- P_XM*P_M + P_XNM * P_NM
 ```
 
 
