@@ -128,16 +128,19 @@ sapply(radio, function(x) sum(is.na(x)))
 radio %>% 
   group_by(age) %>% 
   summarize(n = n())
-#One entry of 27`, one entry Eighteen (18), one entry female
+#One entry of 27`, one entry Eighteen (18), one entry female, one entry 223, one empty entry, one entry is 4
 radio$age[radio$age == "27`"] <- 27
 radio$age[radio$age == "Eighteen (18)"] <- 18
+radio <- radio[!radio$age == "223", ]
+radio <- radio[!radio$age == "4", ]
+radio <- radio[!radio$age == "female", ]
+radio <- radio[!radio$age == "", ] 
 
 #now check what entries are there in gender
 radio %>% 
   group_by(gender) %>% 
   summarize(n = n())
-#There are 6 empty entries
-
+#There are 6 empty entries, delete the empty entries
 #now check what entries are there in education
 radio %>% 
   group_by(education) %>% 
@@ -154,7 +157,7 @@ radio %>%
 radio %>% 
   group_by(sirius) %>% 
   summarize(n = n())
-# 5 enpty entries
+# 5 empty entries
 
 #now check what entries are there in wharton
 radio %>% 
@@ -166,14 +169,73 @@ radio %>%
 radio %>% 
   group_by(worktime) %>% 
   summarize(n = n())
-# no empty entries, all look good
+# no empty entries, but some very short ones and very long ones look like outliers
+#delete the empty entries
+radio <- radio[!radio$gender == "",]
+radio <- radio[!radio$education == "select one",]
+radio <- radio[!radio$income == "",]
+radio <- radio[!radio$sirius == "",]
+radio <- radio[!radio$wharton == "",]
+#delete outliers of worktime
+ggplot(radio) + 
+  geom_histogram(aes(x = worktime), fill = "blue")
+radio <- radio %>% 
+  filter(worktime > 10 & worktime < 60)
+ggplot(radio) + 
+  geom_histogram(aes(x = worktime), fill = "blue")
 ```
 iii. Brief summary 
 
 Write a brief report to summarize all the variables collected. Include both summary statistics (including sample size) and graphical displays such as histograms or bar charts where appropriate. Comment on what you have found from this sample. (For example - it's very interesting to think about why would one work for a job that pays only 10cents/each survey? Who are those survey workers? The answer may be interesting even if it may not directly relate to our goal.)
 ```{r, echo = FALSE, warning = FALSE}
+#summary statistics
 summary(radio)
 skimr::skim(radio)
+#histogram for age
+radio$age <- as.numeric(radio$age)
+ggplot(radio) + 
+  geom_histogram(aes(x = age), fill = "blue") +
+  labs( title = "Histogram of Age", x = "Age" , y = "Frequency")
+#gender
+ggplot(radio) +
+  geom_bar(aes(x = gender), fill = "blue")
+radio %>%
+  group_by(gender) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#education
+ggplot(radio) +
+  geom_bar(aes(x = education), fill = "blue")
+radio %>%
+  group_by(education) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#bar chart for income
+ggplot(radio) +
+  geom_bar(aes(x = income), fill = "blue")
+radio %>%
+  group_by(income) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#bar chart for sirius 
+ggplot(radio) +
+  geom_bar(aes(x = sirius), fill = "blue")
+radio %>%
+  group_by(sirius) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#bar chart for wharton
+ggplot(radio) +
+  geom_bar(aes(x = wharton), fill = "blue")
+radio %>%
+  group_by(wharton) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
 ```
 
 
@@ -186,6 +248,46 @@ ii. Does this sample appear to be a random sample from the MTURK population?
 
 Note: You can not provide evidence by simply looking at our data here. For example, you need to find distribution of education in our age group in US to see if the two groups match in distribution. You may need to gather some background information about the MTURK population to have a slight sense if this particular sample seem to a random sample from there... Please do not spend too much time gathering evidence. 
 
+```{r, echo = FALSE, warning = FALSE}
+#try to look at gender, age, education, and income distribution of our dataset based on both of american population + mturk
+#https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/
+# Approximately 57% of people on MTurk identify as female, according to the Census Bureau, women represent just under 51% of the U.S. population.
+radio %>%
+  group_by(gender) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#our sample is 57.5% male and 42.5% female. Given the national sample and MTurk sample, our sample has sligtly more male than female.
+
+#About 30% of people on MTurm are in their 20s, 37% of people are in their 30’s, another 17% are in their 40’s, and roughly 11% are in their 50’s
+
+radio <- radio %>% 
+  mutate(agegroup = case_when(age >= 18 & age <= 29 ~ '1',
+                              age >= 30 & age <= 39 ~ '2',
+                              age >= 40 & age <= 49 ~ '3',
+                              age >= 50 & age <= 59 ~ '4',
+                              age >= 60 ~ '5'))
+
+radio %>%
+  group_by(agegroup) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+#In our sample, 59% are in their 20s, 25% are in their 30s, 9% are in their 40s, 5% are in their 50s, and only 1% in their 60s or over. Our sample is slighly more young skewed than the general population
+
+#MTurk: 46.42% less than 50k, 26.46% 50k-80k, 22.2% 80k-150k, 4.92% > 150k
+#National: 40% less than 50k, 20.2% 50k-80k, 24.35% 80k - 160k, 15.47% > 150k
+radio %>%
+  group_by(income) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  arrange(desc(freq))
+
+#Our: 57.3% < 50k, 22% 50k to 75k, 19% 75k to 150k, and 3% > 150k
+
+```
+
+
 ## Final estimate
 
 Give a final estimate of the Wharton audience size in January 2014. Assume that the sample is a random sample of the MTURK population, and that the proportion of Wharton listeners vs. Sirius listeners in the general population is the same as that in the MTURK population. Write a brief executive summary to summarize your findings and how you came to that conclusion.
@@ -196,6 +298,12 @@ To be specific, you should include:
 2. Method used: data gathering, estimation methods
 3. Findings
 4. Limitations of the study. 
+
+```{r, echo = FALSE, warning = FALSE}
+# the goal is to estimate the proportion of the Wharton listeners to that of the Sirius listener, so that we will come up with an audience size estimate of approximately 51.6 million times
+sum(radio$wharton == "Yes")/sum(radio$sirius == "Yes") * 51.6
+#2.48 million
+```
 
 
 ## New task
