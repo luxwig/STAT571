@@ -331,16 +331,28 @@ P(X) = P(X|M)P(M) + P(X|\bar{M})P(\bar{M})
 $$
 ```{r, echo = FALSE, warning = FALSE}
 # the goal is to estimate the proportion of the Wharton listeners to that of the Sirius listener, so that we will come up with an audience size estimate of approximately 51.6 million times
-sum(radio$wharton == "Yes")/sum(radio$sirius == "Yes") * 51.6
-#2.48 million
-radio$wharton <- as.factor(radio$wharton)
-summary(glm(wharton ~ income + age + education + age, data = radio,family = "binomial"))
 #calculate four categories with possibilities
-P_XM <- sum(radio$gender == "Male" & radio$wharton == "Yes")/nrow(radio)
+P_XM <- radio %>% 
+  filter(gender == "Male" & sirius == "Yes") %>%
+  group_by(wharton) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  filter(wharton == "Yes") %>% 
+  select(freq)
+  
+P_XNM <- radio %>% 
+  filter(gender == "Female" & sirius == "Yes") %>%
+  group_by(wharton) %>% 
+  summarise(cnt = n()) %>% 
+  mutate(freq = cnt / sum(cnt)) %>% 
+  filter(wharton == "Yes") %>% 
+  select(freq)
+  
 P_M <- 0.43 # percentage of male participants on MTurk 
-P_XNM <- sum(radio$gender == "Female" & radio$wharton == "Yes")/nrow(radio)
 P_NM <- 0.57 # percentage of female participants on MTurk
 P_total <- P_XM*P_M + P_XNM * P_NM
+Estimate = P_total$freq * 51.6
+Estimate # in millions
 ```
 
 
