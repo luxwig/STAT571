@@ -299,6 +299,32 @@ To be specific, you should include:
 3. Findings
 4. Limitations of the study. 
 
+
+## Estimation Methods
+
+In the existing survey data, we have 4 independent demographic varibles `income`, `gender`, `education` and `age`. To study the significance of each variable on the probability of listening Wharton Talk Show ($P(X)$), we performed a multinomial logistic regression as follow 
+
+```{r}
+radio$wharton <- as.factor(radio$wharton)
+radio$education <- as.factor(radio$education)
+radio$income <- as.factor(radio$income)
+radio$gender <- as.factor(radio$gender)
+summary(glm(wharton ~ income + education + gender + age , data = radio, family = "binomial"))
+```
+
+The summary indicates that the `gender` and `education` with Graduate or professional degree have significant effects on the outcome ($P(X)$).
+
+Therefore, we proposed following model
+
+$$
+P(X) = P(X|M \cap G)P(M \cap G) + P(X|\bar{M} \cap G)P(\bar{M} \cap G) + P(X|M \cap \bar{G})P(M \cap \bar{G}) + P(X|\bar{M} \cap \bar{G})P(\bar{M} \cap \bar{G})
+$$
+Where $X$ is listnting Wharton Talk Show on Sirius MX, $M$ is male, $G$ is having Graduate or professional degree.
+
+However ...... We have to simplify the model into the following
+$$
+P(X) = P(X|M)P(M) + P(X|\bar{M})P(\bar{M})
+$$
 ```{r, echo = FALSE, warning = FALSE}
 # the goal is to estimate the proportion of the Wharton listeners to that of the Sirius listener, so that we will come up with an audience size estimate of approximately 51.6 million times
 sum(radio$wharton == "Yes")/sum(radio$sirius == "Yes") * 51.6
