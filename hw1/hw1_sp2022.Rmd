@@ -27,7 +27,7 @@ urlcolor: blue
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, results = "hide", fig.width=8, fig.height=4)
+knitr::opts_chunk$set(echo = TRUE, include = TRUE, warning = FALSE, message = FALSE, results = "hide", fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
@@ -400,9 +400,17 @@ Please fill in the google form to list your platform where surveys will be launc
 
 A good proposal will give an accurate estimation with the least amount of money used. 
 
-We can use the method described in the previous section to estimate the audience size. Another proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
+
+### Methods
 
 We are proposing collecting a demographically representative random sample from the general population using a company called Forthright, which is a survey collection company that runs high quality surveys on sample populations.
+
+Similar to the analysis methods from the previous section, we will first identify the variables of interests. We will then estimated the probability $P(X)$ through the same methods as indicated in the ``Estimation Methods``.
+
+Since the the demographics of the participants is sampled from across U.S., the demographics of the participants will be much closer to the national demographics, which is available through the U.S. Census Bureau. By slicing the data from different perspective, the prior probability (such as $P(M \cap G)$ and $P(M \cap \bar{G})$ from the previous example) can be estimated more accurately.
+
+Another proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
+
 
 # Case study 2: Women in Science
 
