@@ -31,6 +31,9 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
 pacman::p_load(ISLR, readxl, tidyverse, magrittr, dplyr, ggplot2)
+if(!require('reshape2')) {install.packages('reshape2')}
+
+
 ```
 
 
@@ -121,6 +124,11 @@ ii. Handle missing/wrongly filled values of the selected variables
 As in real world data with user input, the data is incomplete, with missing values, and has incorrect responses. There is no general rule for dealing with these problems beyond “use common sense.” In whatever case, explain what the problems were and how you addressed them. Be sure to explain your rationale for your chosen methods of handling issues with the data. Do not use Excel for this, however tempting it might be.
 
 Tip: Reflect on the reasons for which data could be wrong or missing. How would you address each case? For this homework, if you are trying to predict missing values with regression, you are definitely overthinking. Keep it simple.
+
+First by looking at number NAs, it seems like there are no NA entries. Diving into each variable, there seems to be some wrong and empty entries in the form of "". 
+- Age has several character entries that we transformed to numeric numbers of age. Other demographic variables had different number of empty entries, which were deleted because the numbers were small enough to ignore. 
+- Sirius and wharton each had 5 and 4 empty entries, which were deleted. 
+- By looking at worktime, those who finished the survey below 10 seconds and above 60 seconds seem to be outliers of worktime. Therefore these entries were deleted as well.
 ```{r, echo = FALSE, warning = FALSE}
 sapply(radio, function(x) sum(is.na(x)))
 #no actual NA values in each column
@@ -184,9 +192,14 @@ radio <- radio %>%
 ggplot(radio) + 
   geom_histogram(aes(x = worktime), fill = "blue")
 ```
+
+
 iii. Brief summary 
 
 Write a brief report to summarize all the variables collected. Include both summary statistics (including sample size) and graphical displays such as histograms or bar charts where appropriate. Comment on what you have found from this sample. (For example - it's very interesting to think about why would one work for a job that pays only 10cents/each survey? Who are those survey workers? The answer may be interesting even if it may not directly relate to our goal.)
+
+From the summary statistics and graphs, we can see that this sample of participants are mostly in the age between their 20s to 40s. There are more male than female participants where male make up of 57.5% of the sample and female make up of 42.5% of the sample. Most participants either held a bachelor's degree or Some college, no diploma; or Associate’s degree. Few participants held higher than Bachelor's degree and very few held high school graduate or lower education level. Participant's income are relatively evenly spread between 15k-30k, 30k-50k, 30k-75k, and 75k-150k. Few participants' income level is below 15k, and very few above 150k. Overall, this is a group of relatively young and middle aged participants who hold relatively lower to middle socioeconomic status.
+
 ```{r, echo = FALSE, warning = FALSE}
 #summary statistics
 summary(radio)
@@ -194,11 +207,11 @@ skimr::skim(radio)
 #histogram for age
 radio$age <- as.numeric(radio$age)
 ggplot(radio) + 
-  geom_histogram(aes(x = age), fill = "blue") +
+  geom_histogram(aes(x = age), fill = "dark blue") +
   labs( title = "Histogram of Age", x = "Age" , y = "Frequency")
 #gender
 ggplot(radio) +
-  geom_bar(aes(x = gender), fill = "blue")
+  geom_bar(aes(x = gender), fill = "dark blue")
 radio %>%
   group_by(gender) %>% 
   summarise(cnt = n()) %>% 
@@ -206,7 +219,7 @@ radio %>%
   arrange(desc(freq))
 #education
 ggplot(radio) +
-  geom_bar(aes(x = education), fill = "blue")
+  geom_bar(aes(x = education), fill = "dark blue")
 radio %>%
   group_by(education) %>% 
   summarise(cnt = n()) %>% 
@@ -214,7 +227,7 @@ radio %>%
   arrange(desc(freq))
 #bar chart for income
 ggplot(radio) +
-  geom_bar(aes(x = income), fill = "blue")
+  geom_bar(aes(x = income), fill = "dark blue")
 radio %>%
   group_by(income) %>% 
   summarise(cnt = n()) %>% 
@@ -222,7 +235,7 @@ radio %>%
   arrange(desc(freq))
 #bar chart for sirius 
 ggplot(radio) +
-  geom_bar(aes(x = sirius), fill = "blue")
+  geom_bar(aes(x = sirius), fill = "dark blue")
 radio %>%
   group_by(sirius) %>% 
   summarise(cnt = n()) %>% 
@@ -230,7 +243,7 @@ radio %>%
   arrange(desc(freq))
 #bar chart for wharton
 ggplot(radio) +
-  geom_bar(aes(x = wharton), fill = "blue")
+  geom_bar(aes(x = wharton), fill = "dark blue")
 radio %>%
   group_by(wharton) %>% 
   summarise(cnt = n()) %>% 
@@ -244,47 +257,61 @@ radio %>%
 The population from which the sample is drawn determines where the results of our analysis can be applied or generalized. We include some basic demographic information for the purpose of identifying sample bias, if any exists. Combine our data and the general population distribution in age, gender and income to try to characterize our sample on hand.
 
 i. Does this sample appear to be a random sample from the general population of the USA?
+  This sample appears to have slightly less female, much more younger population in their 20s, and more population who's income is lower than 50k a year compare to the general population of the USA. Overall, this does not appear to be a random sample from the general population
 ii. Does this sample appear to be a random sample from the MTURK population?
-
+  This sample appears to have less female, much more younger population in their 20s, almost equal income distribution compare to the MTurk population. Overall, this does not appear to be a random sample from the MTurk population 
 Note: You can not provide evidence by simply looking at our data here. For example, you need to find distribution of education in our age group in US to see if the two groups match in distribution. You may need to gather some background information about the MTURK population to have a slight sense if this particular sample seem to a random sample from there... Please do not spend too much time gathering evidence. 
 
 ```{r, echo = FALSE, warning = FALSE}
 #try to look at gender, age, education, and income distribution of our dataset based on both of american population + mturk
 #https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/
-# Approximately 57% of people on MTurk identify as female, according to the Census Bureau, women represent just under 51% of the U.S. population.
-radio %>%
+#Gender
+gender_per <- radio %>%
   group_by(gender) %>% 
   summarise(cnt = n()) %>% 
-  mutate(freq = cnt / sum(cnt)) %>% 
-  arrange(desc(freq))
-
-#our sample is 57.5% male and 42.5% female. Given the national sample and MTurk sample, our sample has sligtly more male than female.
-
-#About 30% of people on MTurm are in their 20s, 37% of people are in their 30’s, another 17% are in their 40’s, and roughly 11% are in their 50’s
-
+  mutate(radio = cnt / sum(cnt))
+gender_per <- gender_per[-2]
+gender_per <- gender_per %>% 
+  mutate(MTURK = c(0.57, 0.43),
+         national = c(0.51, 0.49))
+gender_per <- melt(gender_per)
+ggplot(gender_per, aes(x = gender, y = value, fill = factor(variable))) +
+  geom_bar(stat = "identity",position = position_dodge())+
+  ggtitle("Gender Distribution of Radio Survey, MTURK, and National")
+#Age
 radio <- radio %>% 
-  mutate(agegroup = case_when(age >= 18 & age <= 29 ~ '1',
-                              age >= 30 & age <= 39 ~ '2',
-                              age >= 40 & age <= 49 ~ '3',
-                              age >= 50 & age <= 59 ~ '4',
-                              age >= 60 ~ '5'))
+  mutate(agegroup = case_when(age >= 18 & age <= 29 ~ '20s',
+                              age >= 30 & age <= 39 ~ '30s',
+                              age >= 40 & age <= 49 ~ '40s',
+                              age >= 50 & age <= 59 ~ '50s',
+                              age >= 60 ~ 'over 60s'))
 
-radio %>%
-  group_by(agegroup) %>% 
+age_per <- radio %>%
+  group_by(agegroup) %>%
   summarise(cnt = n()) %>% 
-  mutate(freq = cnt / sum(cnt)) %>% 
-  arrange(desc(freq))
-#In our sample, 59% are in their 20s, 25% are in their 30s, 9% are in their 40s, 5% are in their 50s, and only 1% in their 60s or over. Our sample is slighly more young skewed than the general population
+  mutate(radio = cnt / sum(cnt))
+age_per <- age_per[-2]
+age_per <- age_per %>% 
+  mutate(MTURK = c(0.297, 0.368, 0.168, 0.107, 0.06),
+         national = c(0.15, 0.165, 0.156, 0.172, 0.356))
+age_per <- melt(age_per)
 
-#MTurk: 46.42% less than 50k, 26.46% 50k-80k, 22.2% 80k-150k, 4.92% > 150k
-#National: 40% less than 50k, 20.2% 50k-80k, 24.35% 80k - 160k, 15.47% > 150k
-radio %>%
+ggplot(age_per, aes(x = agegroup, y = value, fill = factor(variable))) +
+  geom_bar(stat = "identity",position = position_dodge())+
+  ggtitle("Age Distribution of Radio Survey, MTURK, and National")
+#Income
+income_per <- radio %>%
   group_by(income) %>% 
   summarise(cnt = n()) %>% 
-  mutate(freq = cnt / sum(cnt)) %>% 
-  arrange(desc(freq))
-
-#Our: 57.3% < 50k, 22% 50k to 75k, 19% 75k to 150k, and 3% > 150k
+  mutate(radio = cnt / sum(cnt))
+income_per <- income_per[-2]
+income_per <- income_per %>% 
+  mutate(MTURK = c(0.182, 0.218, 0.264, 0.221, 0.05, 0.06),
+         national = c(0.172, 0.165, 0.202, 0.242, 0.15, 0.6))
+income_per <- melt(income_per)
+ggplot(income_per, aes(x = income, y = value, fill = factor(variable))) +
+  geom_bar(stat = "identity",position = position_dodge())+
+  ggtitle("Income Distribution of Radio Survey, MTURK, and National")
 
 ```
 
@@ -299,14 +326,14 @@ To be specific, you should include:
 2. Method used: data gathering, estimation methods
 3. Findings
 4. Limitations of the study. 
-M = Male
-X = Listen to Wharton
-P = P(X|M)P(M) + P(X|-M)P(-M)
+# Executive Summary of Wharton Radio MTurk Survey
 
+## Goal of the study
+  The goal of this study was to find out the audience size for the Wharton radio show in 2014. To estimate the audience size, a survey via Amazon Mechanical Turk was administered. The goal of the maximum sample was 2000 people during a 6 days span.  The main questions of interest are "Have you ever listened to Sirius Radio" and "Have you ever listened to Sirius Business Radio by Wharton?". A few demographic features used as control variables were also collected; these include Gender, Age and Household Income.  
 
 ## Estimation Methods
 
-In the existing survey data, we have 4 independent demographic varibles `income`, `gender`, `education` and `age`. To study the significance of each variable on the probability of listening Wharton Talk Show ($P(X)$), we performed a multinomial logistic regression as follow 
+In the existing survey data, we have 4 independent demographic varibles `income`, `gender`, `education` and `age`. To study the significance of each variable on the probability of listening Wharton Talk Show ($P(X)$), we performed a logistic regression as follow 
 
 ```{r}
 radio$wharton <- as.factor(radio$wharton)
@@ -325,13 +352,12 @@ P(X) = P(X|M \cap G)P(M \cap G) + P(X|\bar{M} \cap G)P(\bar{M} \cap G) + P(X|M \
 $$
 Where $X$ is listnting Wharton Talk Show on Sirius MX, $M$ is male, $G$ is having Graduate or professional degree.
 
-However ...... We have to simplify the model into the following
+However, due to lack of information on percentage cross demographics on a national sample (i.e. percentage of male who have graduate or professional degree), we have to simplify the model into the following that only includes gender 
 $$
 P(X) = P(X|M)P(M) + P(X|\bar{M})P(\bar{M})
 $$
+
 ```{r, echo = FALSE, warning = FALSE}
-# the goal is to estimate the proportion of the Wharton listeners to that of the Sirius listener, so that we will come up with an audience size estimate of approximately 51.6 million times
-#calculate four categories with possibilities
 P_XM <- radio %>% 
   filter(gender == "Male" & sirius == "Yes") %>%
   group_by(wharton) %>% 
@@ -354,6 +380,11 @@ P_total <- P_XM*P_M + P_XNM * P_NM
 Estimate = P_total$freq * 51.6
 Estimate # in millions
 ```
+
+## Findings
+  
+
+## Limitations
 
 
 ## New task
