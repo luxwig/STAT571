@@ -400,15 +400,9 @@ Please fill in the google form to list your platform where surveys will be launc
 
 A good proposal will give an accurate estimation with the least amount of money used. 
 
-Our proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
+We can use the method described in the previous section to estimate the audience size. Another proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
 
-If we continue the assumption that the proportion of Wharton listeners vs. Sirius listeners in the general population is the same as that in the MTURK population, then we should run another survey on MTURK to estimate Wharton audience size.
-
-State the name and Attach a URL where you want to launch a survey or describe your own way to collect information
-https://blog.mturk.com/editing-the-survey-link-project-template-in-the-ui-7c75285105fb
-
-Pros: cheap and quick way to survey a high number of respondents
-Cons: Potentially lower quality data (e.g., professional survey takers, unrepresentative, etc)
+We are proposing collecting a demographically representative random sample from the general population using a company called Forthright, which is a survey collection company that runs high quality surveys on sample populations.
 
 # Case study 2: Women in Science
 
@@ -539,10 +533,10 @@ res %>%
   ggtitle("Degrees granted by sex, degree and SE")
 ```
 
-Without doing any statistical analysis, we can still identify following trends over time:
-  + More degrees are granted over the time in both fields and for both and female.
-  + The portion of female degree awardees over the total degree awardees grows over the year within non S&E fields.
-  + The portion of male degree awardees over the total degree awardees grows over the year within S&E fields.
+Without doing any statistical analysis, we can still identify the following trends over time:
+  + More degrees are granted over time in both fields and for both male and female.
+  + The portion of female degree awardees over the total degree awardees grows over the years within non S&E fields.
+  + The portion of male degree awardees over the total degree awardees grows over the years within S&E fields.
 
 ## Women in Data Science
 
@@ -561,13 +555,13 @@ wsci %>%
   xlab("Female Ratio")
 ```
 
-The figure above shows that all types of degree over past 10 years, female are significantly underrepresented in the data science field; while around 1/3 of the master degrees are awarded to female, roughly only 1/4 of the Ph.D. and B.S. degrees are awarded to female.
+The figure above shows that all types of degree over the past 10 years. The data shows that females are significantly underrepresented in the data science field; while around 1/3 of the master degrees are awarded to female, roughly only 1/4 of the Ph.D. and B.S. degrees are awarded to female.
 
 ## Final brief report
 
 Summarize your findings focusing on answering the questions regarding if we see consistent patterns that more males pursue science-related fields. Any concerns with the data set? How could we improve on the study?
 
-Based on the analysis, although  more degrees are granted to both male and female either fields, the portion of female science-related field degree awardees are always lower than male ones. This highlighted the underrepresention of female in science and engineering related fields over the past 10 years. Furthermore, this gap is increasing over the year as suggested in ``EDA bring all variables`` section.
+Based on the analysis, although  more degrees are granted to both male and female either fields, the portion of female science-related field degree awardees are always lower than male ones. This highlighted the underrepresention of females in science and engineering related fields over the past 10 years. Furthermore, this gap is increasing over the years as suggested in ``EDA bring all variables`` section.
 
 In this data set, for each year, there are always more female degree awardees compare to the male ones. In other words, the data set has more female samples compare to male samples. While this could be true, one improvement is that: instead of arbitrarily sampling, the ratio between the number of degrees awarded to female and male for a given year should reflect the actual demographics in the graduating population.
 
@@ -714,7 +708,7 @@ F Statistic & 13.700$^{***}$ (df = 1; 478) & 0.885 (df = 16; 463) \\
 \end{tabular} 
 \end{table} 
 
-Looking at Table 1 and the above scatterplot, there is evidence to support the hypothesis that higher increases in payroll on the log scale leads to increased performance. The scatterplot with a line of best fit shows a positive correlation between change in payroll and winning percentage. Moreover, using linear regression with ordinary least squares, we show that a 1-unit increase in logged yearly change in payroll is associated with a 0.047 increase in winning percentage. This relationship is robust to including year fixed effects.
+Looking at Table 7 and the above scatterplot, there is evidence to support the hypothesis that higher increases in payroll on the log scale leads to increased performance. The scatterplot with a line of best fit shows a positive correlation between change in payroll and winning percentage. Moreover, using linear regression with ordinary least squares, we show that a 1-unit increase in logged yearly change in payroll is associated with a 0.047 increase in winning percentage. This relationship is robust to including year fixed effects.
 
 ## Comparison
 
