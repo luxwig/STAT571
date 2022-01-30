@@ -381,11 +381,11 @@ Estimate = P_total$freq * 51.6
 Estimate # in millions
 ```
 
-## Findings
-  
+### Findings
+  Based on our sample and the estimation method, we found that Wharton listeners make up of 4.24% of
 
-## Limitations
-
+### Limitations
+  There are several limitations to this study. First, the study participants were not representative of a nationally . Second, only one question was used to estimate whether the participant is a listener of the Wharton radio show. Other related questions such as listening frequency, whether the participants listen to other similar shows could be asked to better understand the audience. 
 
 ## New task
 
