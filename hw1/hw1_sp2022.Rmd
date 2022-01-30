@@ -400,17 +400,19 @@ Please fill in the google form to list your platform where surveys will be launc
 
 A good proposal will give an accurate estimation with the least amount of money used. 
 
+### Data Collection
+
+We are proposing collecting a demographically representative We are proposing collecting a demographically representative random sample from the general population using a company called Forthright, which is a survey collection company that runs high quality surveys on sample populations. Based on the company's pricing policy, we estimate that it will take 2 dollar/person. With the $1000 provided for the study, we estimate the sample size will be 500 people.
+
+Within the survey, the questions will be the same as current ones. In addtion, in order to achieve the demegraphic of the population, the U.S. census will be used from the U.S. Census Bureau.
 
 ### Methods
 
-We are proposing collecting a demographically representative random sample from the general population using a company called Forthright, which is a survey collection company that runs high quality surveys on sample populations.
+Similar to the analysis methods from the previous section, we will first identify the variables of interest. We will then estimate the probability $P(X)$ through the same methods as indicated in the ``Estimation Methods``.
 
-Similar to the analysis methods from the previous section, we will first identify the variables of interests. We will then estimated the probability $P(X)$ through the same methods as indicated in the ``Estimation Methods``.
-
-Since the the demographics of the participants is sampled from across U.S., the demographics of the participants will be much closer to the national demographics, which is available through the U.S. Census Bureau. By slicing the data from different perspective, the prior probability (such as $P(M \cap G)$ and $P(M \cap \bar{G})$ from the previous example) can be estimated more accurately.
+Since the demographics of the participants are sampled from across the U.S., the demographics of the participants will be much closer to the national demographics, which is available through the U.S. Census Bureau. By slicing the data from different perspectives, the prior probability (such as $P(M \cap G)$ and $P(M \cap \bar{G})$ from the previous example) can be estimated more accurately.
 
 Another proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
-
 
 # Case study 2: Women in Science
 
@@ -542,8 +544,11 @@ res %>%
 ```
 
 Without doing any statistical analysis, we can still identify the following trends over time:
+
   + More degrees are granted over time in both fields and for both male and female.
+  
   + The portion of female degree awardees over the total degree awardees grows over the years within non S&E fields.
+  
   + The portion of male degree awardees over the total degree awardees grows over the years within S&E fields.
 
 ## Women in Data Science
