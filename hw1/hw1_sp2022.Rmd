@@ -446,18 +446,17 @@ res <- wsci %>%
 res
 
 res %>%
-ggplot(aes(x = SE, y = n, fill = Sex)) +
+ggplot(aes(x = Sex, y = n, fill = SE)) +
   geom_bar(stat = "identity", position = "dodge") +
   theme(axis.text.y = element_text(angle = 60)) +
   ggtitle("Degrees granted by S&E vs non-S&E by gender") + 
   ylab("Number")+ xlab("")
 ```
 
-In 2015, there is more female compared to male within `Non S&E` fields. However, within the science-related fields, the number of female is almost identical compared to male.
+In 2015, there are both more male and female within `Non S&E` than in science-related fields. However, the difference is signficantly lower for male compared to female.
+
 
 ## EDA bringing type of degree, field and gender in 2015
-
-%% Are we doing analysis on gender effects over B.S, M.S. and Ph.D or degrees in the field
 
 Describe the number of people by type of degree, field, and gender. Do you see any evidence of gender effects over different types of degrees? Again, provide graphs to summarize your findings.
 
@@ -482,24 +481,30 @@ The table and the graph above show the number of people by type of degree, field
 To summarize, within science & engineering related fields, there are approximately similar numbers of B.S. degree granted to female and male in 2015. However, there are more advanced degrees (M.S. and Ph.D.) granted to male within the field. 
 By contrast, within non science & engineering related fields, more degrees are awarded to female regardless of the types of the degree.
 
-Furthermore, from the graph, we can see gender effect on degree for both science & engineering related fields and non science & engineering related fields, especially the latter one, as stated in the previous paragraph.
+We can see gender effect on degree for both science-related fields and non science & engineering related fields, especially the latter one, as stated in the previous paragraph.
 ## EDA bring all variables 
 
 In this last portion of the EDA, we ask you to provide evidence numerically and graphically: Do the number of  degrees change by gender, field, and time? 
 
 
-%% Question: how should we do numerically
 ```{r}
 
-wsci %>%
+res <- wsci %>%
   mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
-  group_by(SE, Sex, Year, Degree) %>%
-  summarise(SE_number = sum(Number)) %>%
+  group_by(SE, Sex, Year) %>%
+  summarise(SE_number = sum(Number)) 
+res
+res %>%
   ggplot(aes(x = Year, y = SE_number, fill = Sex)) +
   geom_bar(stat = "identity", position = "dodge") +
-  facet_grid(SE~Degree, scales = "free_y") +
+  facet_grid(~SE, scales = "free_y") +
   ggtitle("Degrees granted by sex, degree and SE")
 ```
+
+Without doing any statistical analysis, we can still identify following trends over time:
+- More degrees are granted over the time in both fields and for both and female.
+- The portion of female degree awardees over the total degree awardees grows over the year within non S&E fields.
+- The portion of male degree awardees over the total degree awardees grows over the year within S&E fields.
 
 ## Women in Data Science
 
@@ -524,9 +529,9 @@ The figure above shows that all types of degree over past 10 years, female are s
 
 Summarize your findings focusing on answering the questions regarding if we see consistent patterns that more males pursue science-related fields. Any concerns with the data set? How could we improve on the study?
 
-Based on the analysis, the female is underrepresented in science and engineering related fields over the past 10 years. While in this study, the number of degree awarded for female may be similar to the male at a given year, the ratio/percentage is not. 
+Based on the analysis, although  more degrees are granted to both male and female either fields, the portion of female science-related field degree awardees are always lower than male ones. This highlighted the underrepresention of female in science and engineering related fields over the past 10 years. Furthermore, this gap is increasing over the year as suggested in ``EDA bring all variables`` section.
 
-In this data set, for each year, more degrees are awarded to the female compare to the male. In other words, the data set has more female samples compare to male samples. While this could be true, one improvement is that: instead of arbitrarily selecting samples, the ratio between the number of degrees awarded to female and male for a given year should reflect the actual ratio.
+In this data set, for each year, there are always more female degree awardees compare to the male ones. In other words, the data set has more female samples compare to male samples. While this could be true, one improvement is that: instead of arbitrarily sampling, the ratio between the number of degrees awarded to female and male for a given year should reflect the actual demographics in the graduating population.
 
 # Case study 3: Major League Baseball
 
