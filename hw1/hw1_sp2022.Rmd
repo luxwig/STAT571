@@ -6,6 +6,10 @@ author:
 - Group Member 3
 date: 'Due: 11:59PM,  Jan. 30th, 2021'
 output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '4'
   html_document:
     code_folding: show
     highlight: haddock
@@ -14,10 +18,6 @@ output:
     toc: yes
     toc_depth: 4
     toc_float: yes
-  pdf_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: '4'
   word_document:
     toc: yes
     toc_depth: '4'
@@ -368,9 +368,15 @@ Please fill in the google form to list your platform where surveys will be launc
 
 A good proposal will give an accurate estimation with the least amount of money used. 
 
+Our proposed method of estimating audience size is to use the simple logic of ratios to approximate the number of Wharton listeners. Prop of Sirius listeners in sample/Prop of Wharton listeners in sample = Number of Sirius listeners in population/Number of Wharton listeners in population. 
 
+If we continue the assumption that the proportion of Wharton listeners vs. Sirius listeners in the general population is the same as that in the MTURK population, then we should run another survey on MTURK to estimate Wharton audience size.
 
+State the name and Attach a URL where you want to launch a survey or describe your own way to collect information
+https://blog.mturk.com/editing-the-survey-link-project-template-in-the-ui-7c75285105fb
 
+Pros: cheap and quick way to survey a high number of respondents
+Cons: Potentially lower quality data (e.g., professional survey takers, unrepresentative, etc)
 
 # Case study 2: Women in Science
 
@@ -537,7 +543,6 @@ Here are the datasets:
 -`baseball.csv`: long format
 
 ```{r, include=TRUE,echo=TRUE}
-library(tidyverse)
 # Load in data
 datapay <- read_csv("data/MLPayData_Total.csv")
 baseball <- read_csv("data/baseball.csv")
@@ -559,10 +564,28 @@ i. To describe the increment of payroll in each year there are several possible 
 Explain why the log difference is more appropriate in this setup.
 
 ```{r, include=TRUE,echo=TRUE,results=TRUE}
+# Summary data
 summary(datapay$p2013)
+
+# Histogram of lagged values
+baseball %>%
+  group_by(team) %>%
+  mutate(diff_lag = payroll - lag(payroll)) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_histogram(aes(x = diff_lag), bins = 30, fill = "blue") +
+  labs(title = "Histogram of Yearly Change in Payroll", x = "Change in Payroll" , y = "Frequency")
+# Histogram of lagged values (log)
+baseball %>%
+  group_by(team) %>%
+  mutate(diff_lag = log(payroll) - log(lag(payroll))) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_histogram(aes(x = diff_lag), bins = 30, fill = "blue") +
+  labs(title = "Histogram of Yearly Change in Payroll (log)", x = "Change in Payroll (log)" , y = "Frequency")
 ```
 
-The above distribution for team payroll shows that the max values are significant outliers. A logarithmic transformation is more appropriate in this set up to handle skewness in the data.
+A logarithmic transformation is more appropriate in this set up to handle skewness in the data. Looking at the two figures above, the second histogram (on the log scale) appears to approximate a normal distribution closer than the first histogram. 
 
 ii. Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 
@@ -606,7 +629,7 @@ Pick up a few statistics, accompanied with some data visualization, to support y
 
 ```{r, include=TRUE,echo=TRUE}
 baseball_lag %>%
-  ggplot(aes(x = diff_lag, y = win_pct, color = team)) +
+  ggplot(aes(x = diff_lag, y = win_pct)) +
   geom_point(size = 2,alpha=.7) +
   geom_smooth(
     method = "lm",
@@ -614,10 +637,9 @@ baseball_lag %>%
     se = F,
     color = "red") +
   theme_bw() +
-  labs(x = "Yearly Increase in Payroll",
+  labs(x = "Yearly Increase in Payroll (log)",
        y = "Winning Percentage",
-       title = "Relationship between Yearly Increase in Payroll and Winning Percentage") +
-  theme(legend.position = "none")
+       title = "Relationship between Yearly Increase in Payroll and Winning Percentage")
 
 ```
 
@@ -654,6 +676,8 @@ F Statistic & 13.700$^{***}$ (df = 1; 478) & 0.885 (df = 16; 463) \\
 \end{tabular} 
 \end{table} 
 
+Looking at Table 1 and the above scatterplot, there is evidence to support the hypothesis that higher increases in payroll on the log scale leads to increased performance. The scatterplot with a line of best fit shows a positive correlation between change in payroll and winning percentage. Moreover, using linear regression with ordinary least squares, we show that a 1-unit increase in logged yearly change in payroll is associated with a 0.047 increase in winning percentage. This relationship is robust to including year fixed effects.
+
 ## Comparison
 
 Which set of factors are better explaining performance? Yearly payroll or yearly increase in payroll? What criterion is being used? 
@@ -679,7 +703,7 @@ model2_summary[["r.squared"]]
 
 ```
 
-Using root mean square error as an evaluation metric, it looks like yearly increase in payroll is a better fit for the data than yearly payroll. Using R-squared an evaluation metric, however, shows that yearly payroll explains more variance in the data than yearly increase in payroll.
+Using root mean square error as an evaluation metric, it looks like yearly payroll is a slightly better fit for the data than yearly increase in payroll. Using R-squared as an evaluation metric shows that yearly payroll explains more variance in the data than yearly increase in payroll. From both of these metrics, it looks like yearly payroll better explains performance than yearly increase in payroll.
 
 
 
