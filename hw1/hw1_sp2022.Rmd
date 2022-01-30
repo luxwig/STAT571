@@ -493,7 +493,7 @@ ggplot(aes(x = Sex, y = n, fill = SE)) +
   ylab("Number")+ xlab("")
 ```
 
-In 2015, there are both more male and female within `Non S&E` than in science-related fields. However, the difference is signficantly lower for male compared to female.
+In 2015, there are both more male and female within `Non S&E` than in science-related fields. However, the difference is significantly lower for male compared to female.
 
 
 
