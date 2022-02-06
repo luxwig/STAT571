@@ -639,19 +639,73 @@ brca <- fread("data/brca_subtype.csv")
 
 # get the sub-type information
 brca_subtype <- brca$BRCA_Subtype_PAM50
-brca <- brca[,-1]
+
 ```
 
 1. Summary and transformation
 
     a) How many patients are there in each sub-type? 
+```{r}
+table(brca_subtype)
+```
+
 
     b) Randomly pick 5 genes and plot the histogram by each sub-type.
+```{r}
+ggplot(brca, aes(A2M)) +
+  geom_histogram(fill = "#FFDB6D") +
+  facet_wrap(vars(BRCA_Subtype_PAM50)) +
+  theme_minimal()
+
+ggplot(brca, aes(DAG1)) +
+  geom_histogram(fill = "#D16103") +
+  facet_wrap(vars(BRCA_Subtype_PAM50)) +
+  theme_minimal()
+
+ggplot(brca, aes(GTF2A2)) +
+  geom_histogram(fill = "#C3D7A4") +
+  facet_wrap(vars(BRCA_Subtype_PAM50)) +
+  theme_minimal()
+
+ggplot(brca, aes(SARDH)) +
+  geom_histogram(fill = "#52854C") +
+  facet_wrap(vars(BRCA_Subtype_PAM50)) +
+  theme_minimal()
+
+ggplot(brca, aes(EGF)) +
+  geom_histogram(fill = "#293352") +
+  facet_wrap(vars(BRCA_Subtype_PAM50)) +
+  theme_minimal()
+
+```
+
 
     c) Remove gene with zero count and no variability. Then apply logarithmic transform.
+    
+```{r}
+#first remove mRNA if the entire columns are 0. THen apply log(x+1e-10) to each cell to avoid values which are very close to 0
+brca <- brca[, -1]
+sel_cols <- which(colSums(abs(brca)) != 0)
+brca_sub <- brca[, sel_cols, with = F]
+####no variability?
+#log
+brca_sub <- log2(as.matrix(brca_sub+1e-10))
+```
+
 
 
 2. Apply kmeans on the transformed dataset with 4 centers and output the discrepancy table between the real sub-type `brca_subtype` and the cluster labels.
+
+```{r}
+system.time({brca_sub_kmeans <- kmeans(x = brca_sub, 4)})
+#save the results as RDS
+saveRDS(brca_sub_kmeans, "output/brca_kmeans.RDS")
+#read in brca_sub_kmeans
+brca_sub_kmeans <- readRDS("output/brca_kmeans.RDS")
+
+table(brca_type, brca_sub_kmeans$cluster)
+
+```
 
 3. Spectrum clustering: to scale or not to scale?
 
