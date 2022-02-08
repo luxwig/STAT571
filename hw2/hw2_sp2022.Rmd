@@ -30,7 +30,7 @@ knitr::opts_chunk$set(echo = TRUE, results =TRUE,include = TRUE, fig.width=8, fi
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, data.table,skimr,ggcorrplot,knitr,factoextra,conflicted,fastDummies,caret) # add the packages needed
+pacman::p_load(ISLR, data.table,skimr,ggcorrplot,knitr,factoextra,conflicted,fastDummies,caret,stargazer) # add the packages needed
 #remotes::install_github('vqv/ggbiplot')
 library(ggbiplot)
 library(tidyverse) # load dplyr after ggbiplot to avoid conflicts with plyr
@@ -738,16 +738,44 @@ Get familiar with this dataset first. Tip: you can use the command `?ISLR::Auto`
 ## EDA
 Explore the data, with particular focus on pairwise plots and summary statistics. Briefly summarize your findings and any peculiarities in the data.
 
-
+```{r}
+autoData <- ISLR::Auto
+skim(autoData)
+```
 ## What effect does `time` have on `MPG`?
 
 a) Start with a simple regression of `mpg` vs. `year` and report R's `summary` output. Is `year` a significant variable at the .05 level? State what effect `year` has on `mpg`, if any, according to this model. 
 
+```{r}
+fit1 <- lm(mpg ~ year, data = autoData)
+summary(fit1)
+ggplot(autoData, aes(x = year , y = mpg)) + 
+  geom_point() +
+  geom_smooth(method="lm",se=F)
+```
+Based on the regression analysis, `year` is a significant variable at the level of the .05 level. On average MPG increases 1.23 if a car is made 1 year older.
+
 b) Add `horsepower` on top of the variable `year` to your linear model. Is `year` still a significant variable at the .05 level? Give a precise interpretation of the `year`'s effect found here. 
+```{r}
+fit2 <- lm(mpg ~ year + horsepower, data = autoData)
+summary(fit2)
+```
+
+Based on the new regression analysis, `year` is still a significant variable at the level of the .05 level. This means, after adjustment for engine horsepower, the year remains a statistically significantly associated with MPG (p=0.05); on average MPG increases 0.66 if a car is made 1 year older while the horsepower hold the same. 
+
 
 c) The two 95% CI's for the coefficient of year differ among (i) and (ii). How would you explain the difference to a non-statistician?
 
+The second model (ii) has a narrower 95% CI compared to the first one (i). The second model uses two variables to predict the outcome (MPG) instead of on one, which improve the fitness overall. With a better fitness, we are more confident about our estimation of the relationship between the year and MPG, which results in a narrower CI.
+
 d) Create a model with interaction by fitting `lm(mpg ~ year * horsepower)`. Is the interaction effect significant at .05 level? Explain the year effect (if any). 
+
+```{r}
+fit3 <- lm(mpg ~ year * horsepower, data = autoData)
+summary(fit3)
+```
+
+Based on the new regression analysis, the interaction effect is significant at .05 level. The year effect on MPG is moderated by the horsepower In other words, the year effect on MPG is also depends on the horsepower. 
 
 ## Categorical predictors
 
@@ -755,9 +783,29 @@ Remember that the same variable can play different roles! Take a quick look at t
 
 a) Fit a model that treats `cylinders` as a continuous/numeric variable. Is `cylinders` significant at the 0.01 level? What effect does `cylinders` play in this model?
 
+```{r}
+fit4 <- lm(mpg ~ cylinders, data = autoData)
+summary(fit4)
+```
+The `cylinders` is significant at the 0.01 level. On average MPG drops -3.558 if a car has one more cylinder.
+
 b) Fit a model that treats `cylinders` as a categorical/factor. Is `cylinders` significant at the .01 level? What is the effect of `cylinders` in this model? Describe the `cylinders` effect over `mpg`. 
 
+
+```{r}
+autoLvData <- 
+  autoData %>%
+  mutate(cylinders = as.factor(cylinders))
+
+fit5 <- aov(mpg ~ cylinders, data = autoLvData)
+summary(fit5)
+```
+
+The `cylinders` is significant at the 0.01 level. The MPG are significant difference between at least two cylinder groups.
+
 c) What are the fundamental differences between treating `cylinders` as a continuous and categorical variable in your models? 
+
+While treating `cylinders` as a continuous variable, we are testing whether MPG has a linear relationship with `cylinders`. However, when treating `cylinders` as a categorical variable, we are testing whether MPG is different between at least two different cylinder groups.
 
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
 
@@ -767,6 +815,15 @@ d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fi
 Final modeling question: we want to explore the effects of each feature as best as possible. You may explore interactions, feature transformations, higher order terms, or other strategies within reason. The model(s) should be as parsimonious (simple) as possible unless the gain in accuracy is significant from your point of view.
   
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
+
+```{r}
+finalFit <- lm(log(mpg) ~  horsepower + weight + year + origin, data = autoData)
+
+finalRes = resid(finalFit)
+summary(finalFit)
+
+plot(finalFit, 1:2)
+```
 
 b) Summarize the effects found.
 
