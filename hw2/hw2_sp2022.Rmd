@@ -693,6 +693,8 @@ dim(brca_sub)
 ####no variability?
 #log
 brca_sub <- log2(as.matrix(brca_sub+1e-10))
+
+#sd() and then rank, 
 ```
 
 
@@ -779,10 +781,9 @@ wss <- function(df, k) {
   kmeans(df, k, nstart = 10)$tot.withinss
 }
 
-pca_ret <- prcomp(brca_sub, center = T, scale. = F)
 k.values <- 1:10
 
-wss_values <- purrr::map_dbl(k.values, function(k) wss(pca_ret$x[,1:4], k))
+wss_values <- purrr::map_dbl(k.values, function(k) wss(pc_score_unscale, k))
 plot(k.values, wss_values,
      type = "b", pch = 19, frame = F,
      xlab = "Number of clusters K",
@@ -790,9 +791,9 @@ plot(k.values, wss_values,
 ```
     b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
 ```{r}
-kmean_ret <- kmeans(x = pca_ret$x[,1:4], 4)
-p3 <- data.table(x = pca_ret$x[,1],
-                 y = pca_ret$x[,2],
+kmean_ret <- kmeans(x = pc_score_unscale, 4)
+p3 <- data.table(x = pc_score_unscale[,1],
+                 y = pc_score_unscale[,2],
                  col = as.factor(brca_subtype),
                  cl = as.factor(kmean_ret$cluster)) %>% 
   ggplot()+
