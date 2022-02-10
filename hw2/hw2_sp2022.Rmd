@@ -600,7 +600,7 @@ model3_summary[["r.squared"]]
 
 ```
 
-Using `carets` feature selection algorithm, I identified the 20 features from 1987 with the highest importance. The algorithm helps identify variables that have a meaningful impact on the dependent variable (`esteem`). This helps choose a parsimonious model that avoids overfitting. Comparing the saturated model to the chosen model shows that our r-squared (explained variance) drops from 0.142 to 0.123. Yet, our root mean square error (overall fit of the model), largely remains unchanged (1.2 vs. 1.21). As a result, I chose the model that maintains the 20 features from 1987 with the highest importance.
+Using `caret` feature selection algorithm, I identified and ranked the 20 features from 1987 with the highest importance. Put otherwise, the algorithm helps identify variables that have a meaningful impact on the dependent variable (`esteem`). `caret` measures feature importance as the absolute value of the t-statistic for each model parameter. By limiting our model to only important features, we choose a parsimonious model that avoids overfitting. Comparing the saturated model to the chosen model shows that our r-squared (total explained variance) drops from 0.142 to 0.123. Yet, our root mean square error (overall fit of the model), largely remains unchanged (1.2 vs. 1.21). As a result, I chose the model that maintains the 20 features from 1987 with the highest importance.
 
       - How did you land this model? Run a model diagnosis to see if the linear model assumptions are reasonably met. 
 
