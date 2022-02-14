@@ -908,7 +908,7 @@ fit3 <- lm(mpg ~ year * horsepower, data = autoData)
 summary(fit3)
 ```
 
-Based on the new regression analysis, the interaction effect is significant at .05 level. The year effect on MPG is moderated by the horsepower In other words, the year effect on MPG is also depends on the horsepower. 
+Based on the new regression analysis, the interaction effect is significant at .05 level. The year effect on MPG is moderated by the horsepower. In other words, the year effect on MPG is also depends on the horsepower. 
 
 ## Categorical predictors
 
@@ -930,17 +930,23 @@ autoLvData <-
   autoData %>%
   mutate(cylinders = as.factor(cylinders))
 
-Anova(lm(mpg ~ cylinders, data = autoLvData))
-summary(lm(mpg ~ cylinders, data = autoLvData))
+auto.anova <- Anova(lm(mpg ~ cylinders, data = autoLvData))
+auto.anova
 ```
 
-The `cylinders` is significant at the 0.01 level. The MPG are significant difference between at least two cylinder groups.
+The `cylinders` is significant at the 0.01 level. The MPG is significant difference between at least two cylinder groups.
 
 c) What are the fundamental differences between treating `cylinders` as a continuous and categorical variable in your models? 
 
-While treating `cylinders` as a continuous variable, we are testing whether MPG has a linear relationship with `cylinders`. However, when treating `cylinders` as a categorical variable, we are testing whether MPG is different between at least two different cylinder groups.
+While treating `cylinders` as a continuous variable, we are testing whether `mpg` has a linear relationship with `cylinders`. In other word, we are asking whether there is a trend between `mpg` and `cylinders`. However, when treating `cylinders` as a categorical variable, we are testing whether MPG is different between at least two different cylinder groups; we are not asking if more `cylinders` would lead to higher or lower `mpg`. 
 
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
+
+Fit0: `mpg` is linear in `cylinders`
+Based on the model from question a), we can reject the null hypothesis at .01 level.
+
+Fit1: `mpg` relates to `cylinders` as a categorical variable 
+Based on the model from question b), we can reject the null hypothesis at .01 level.
 
 
 
@@ -950,20 +956,30 @@ Final modeling question: we want to explore the effects of each feature as best 
   
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
 
+The final model uses `horsepower`, `weight`, `year`, `origin` and `cylinders` as the predictor. It also added the interaction term between `horsepower` and `year`. We treated both `origin` and `cylinders` as factors/leves instead of continuous variables. We also transformed the `mpg` on to a log scale.
+
 ```{r}
-finalFit <- lm(log(mpg) ~  horsepower + weight + year + as.factor(origin) + year*horsepower + as.factor(cylinders), data = autoData)
+finalFit <- lm(log(mpg) ~  weight + horsepower*year + as.factor(origin) + as.factor(cylinders), data = autoData)
 
-finalRes = resid(finalFit)
 summary(finalFit)
-
 plot(finalFit, 1:2)
+
+Anova(finalFit)
 ```
 
 b) Summarize the effects found.
+Based on the summary, all independent variables are are statistically significant.
+This indicates `weight`, `horsepower`, `year`, `origin` and `cylinders` all have statistically significant effects on `log(mpg)`. 
 
 c) Predict the `mpg` of the following car: A red car built in the US in 1983 that is 180 inches long, has eight cylinders, displaces 350 cu. inches, weighs 4000 pounds, and has a horsepower of 260. Also give a 95% CI for your prediction.
 
+```{r}
+newData <- data.frame(year = 83, cylinders = 8, displacement = 350, weight = 4000, horsepower = 260, origin = 1)
+fit.new <- predict(finalFit, newData, interval = "confidence", level = 0.95)
+fit.new
+```
 
+The predicted `mpg` for the new car is 2.55, with 95% CI between 2.38 and 2.73.
 # Simple Regression through simulations (option)
     
 ## Linear model through simulations
