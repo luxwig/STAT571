@@ -793,7 +793,6 @@ plot(k.values, wss_values,
     b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
     From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types.
 ```{r}
-set.seed(10)
 kmean_ret <- kmeans(x = pc_score_unscale, 4)
 p3 <- data.table(x = pc_score_unscale[,1],
                  y = pc_score_unscale[,2],
@@ -832,28 +831,28 @@ comparison_plot
 
 ```    
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered) Plot this patient in the plot in iv) with a black dot. Calculate the Euclidean distance between this patient and each of centroid of the cluster. Can you tell which sub-type this patient might have?
-```{r eval=F}
-system.time({brca_sub_pca <- prcomp(brca_sub, scale. = F)}) 
-saveRDS(brca_sub_pca, "brca_sub_pca.RDS")
-```
 
 ```{r}
 x_patient <- fread("data/brca_x_patient.csv")
 
-# Remove genes with 0 count
-sel_cols_x <- which(colSums(abs(x_patient)) != 0)
-x_patient <- x_patient[, sel_cols_x, with=F]
-
-# Get rid of columns without variability
-which(apply(x_patient, 2, var) == 0)
-
 # Apply logarithmic transformation
-x_patient <- log2(as.matrix(x_patient+1e-10))
+x_patient.clean <- (x_patient[ , which(colnames(x_patient) %in% colnames(brca_sub))])
+x_patient.clean <- log2(as.matrix(x_patient_co+1e-10))
 
-x_patient_co <- as.data.frame(x_patient[ , which(colnames(x_patient) %in% colnames(brca_sub))])
+x_patient.centered <- scale(x_patient.clean , center = T, scale = F)
+
                                   
-x_scaled <- scale(x_patient_common, brca_sub_pca$center, brca_sub_pca$scale) %*% brca_sub_c.pca$rotation
-predict(brca_sub_pca, x_patient_co)
+x_patient.pcscores <- as.vector(x_patient.centered) %*% svd_brca_unscale$v[,1:4]
+
+x_patient.dist <- kmean_ret$centers - t(matrix((x_patient.pcscores), nrow=4, ncol=4))
+x_patient.dist <- sqrt(rowSums(x_patient.dist ^ 2))
+
+# Print the L2 distance 
+x_patient.dist
+
+# print which cluster is the closest one to the new paitent
+which.min(x_patient.dist)
+
 ```
 
 
