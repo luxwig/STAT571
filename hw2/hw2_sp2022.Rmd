@@ -833,6 +833,7 @@ comparison_plot
 ```    
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered) Plot this patient in the plot in iv) with a black dot. Calculate the Euclidean distance between this patient and each of centroid of the cluster. Can you tell which sub-type this patient might have?
 ```{r eval=F}
+#use prcomp result for this part of the pca result 
 system.time({brca_sub_pca <- prcomp(brca_sub, scale. = F)}) 
 saveRDS(brca_sub_pca, "brca_sub_pca.RDS")
 ```
@@ -852,8 +853,8 @@ x_patient <- log2(as.matrix(x_patient+1e-10))
 
 x_patient_co <- as.data.frame(x_patient[ , which(colnames(x_patient) %in% colnames(brca_sub))])
                                   
-x_scaled <- scale(x_patient_common, brca_sub_pca$center, brca_sub_pca$scale) %*% brca_sub_c.pca$rotation
-predict(brca_sub_pca, x_patient_co)
+#x_scaled <- scale(x_patient_common, brca_sub_pca$center, brca_sub_pca$scale) %*% brca_sub_c.pca$rotation
+#predict(brca_sub_pca, x_patient)
 ```
 
 
