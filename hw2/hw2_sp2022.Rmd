@@ -1,15 +1,16 @@
 ---
 title: "Modern Data Mining, HW 2"
 author:
-- Group Member 1
-- Group Member 2
-- Group Member 3
+- Ludwig Zhao
+- Nick Pangakis
+- Xinyi Wang
 date: 'Due: 11:59 PM,  Sunday, 02/13'
 output:
   pdf_document:
     number_sections: yes
     toc: yes
     toc_depth: '4'
+    latex_engine: xelatex
   html_document:
     code_folding: show
     highlight: haddock
@@ -280,7 +281,7 @@ The above correlation plot shows that all of the ten esteem measurements are pos
 
 4. PCA on 10 esteem measurements. (centered but no scaling)
 
-    a) Report the PC1 and PC2 loadings. Are they unit vectors? Are they orthogonal? 
+  a) Report the PC1 and PC2 loadings. Are they unit vectors? Are they orthogonal? 
     
 ```{r}
 # subset of data
@@ -295,15 +296,15 @@ round(t(pc_esteem$rotation) %*% pc_esteem$rotation)
 
 Yes, each of the loadings is a unit vector. By definition, the two principal components are orthogonal since they are perpendicular.
 
-    b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
+  b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
 
 PC1 is a weighted sum of all the esteem measures. The values of the weights for PC1 slightly increase respectively with each esteem measure and the final 3 weights are the highest. PC2 shows a natural grouping between the first 7 measures and the last 3 measures.
 
-    c) How is the PC1 score obtained for each subject? Write down the formula.
+  c) How is the PC1 score obtained for each subject? Write down the formula.
 
 \(PC1 = 0.235*Esteem87_1 + 0.244*Esteem87_2 + 0.279*Esteem87_3 + 0.261*Esteem87_4 + 0.312*Esteem87_5 + 0.313*Esteem87_6 + 0.299*Esteem87_7 + 0.393*Esteem87_8 + 0.398*Esteem87_9 + 0.376*Esteem87_{10}\)
     
-    d) Are PC1 scores and PC2 scores in the data uncorrelated? 
+  d) Are PC1 scores and PC2 scores in the data uncorrelated? 
   
 Yes, by definition, the PC scores are uncorrelated linear combinations of the original data, because each PC is perpendicular.
 
@@ -311,7 +312,7 @@ Yes, by definition, the PC scores are uncorrelated linear combinations of the or
 round(cov(pc_esteem$x), 4)
 ```
 
-    e) Plot PVE (Proportion of Variance Explained) and summarize the plot. 
+  e) Plot PVE (Proportion of Variance Explained) and summarize the plot. 
 ```{r}
 plot(summary(pc_esteem)$importance[2, ],  # PVE
      ylab="PVE",
@@ -322,7 +323,7 @@ plot(summary(pc_esteem)$importance[2, ],  # PVE
 
 The first PC explains a significant amount of the variation (nearly half). The second principal component only explains slightly more than 0.1 percent of the variation.
   
-    f) Also plot CPVE (Cumulative Proportion of Variance Explained). What proportion of the variance in the data is explained by the first two principal components?
+  f) Also plot CPVE (Cumulative Proportion of Variance Explained). What proportion of the variance in the data is explained by the first two principal components?
     
 ```{r}
 plot(summary(pc_esteem)$importance[3, ], pch=16,
@@ -333,7 +334,7 @@ plot(summary(pc_esteem)$importance[3, ], pch=16,
 
 The first two PCs explain roughly 60 percent of the variance.
   
-    g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
+  g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
     
 ```{r}
 ggbiplot(pc_esteem, obs.scale = 1.5, var.scale = 1)
@@ -343,14 +344,14 @@ Because the loadings all point in the same direction, this indicates that the fi
 
 5. Apply k-means to cluster subjects on the original esteem scores
 
-    a) Find a reasonable number of clusters using within sum of squared with elbow rules.
+  a) Find a reasonable number of clusters using within sum of squared with elbow rules.
     
 ```{r}
 fviz_nbclust(data_esteem, kmeans, method = "wss")
 ```
 The elbow bend occurs around 2 clusters.
     
-    b) Can you summarize common features within each cluster?
+  b) Can you summarize common features within each cluster?
     
 ```{r}
 esteem_kmeans <- kmeans(data_esteem, centers = 2) 
@@ -371,7 +372,7 @@ nlsy_clean %>%
 
 Individuals in cluster 2 have higher levels of education, income, intelligence, and average esteem than individuals in cluster 1.
     
-    c) Can you visualize the clusters with somewhat clear boundaries? You may try different pairs of variables and different PC pairs of the esteem scores.
+  c) Can you visualize the clusters with somewhat clear boundaries? You may try different pairs of variables and different PC pairs of the esteem scores.
     
 ```{r}
 data.table(x = pc_esteem$x[,1], 
@@ -389,7 +390,7 @@ data.table(x = pc_esteem$x[,1],
 
 6. We now try to find out what factors are related to self-esteem? PC1 of all the Esteem scores is a good variable to summarize one's esteem scores. We take PC1 as our response variable. 
 
-    a) Prepare possible factors/variables:
+  a) Prepare possible factors/variables:
 
       - Personal information: gender, education (05, problematic), log(income) in 87, job type in 87, Body mass index as a measure of health (The BMI is defined as the body mass divided by the square of the body height, and is universally expressed in units of kg/m²). Since BMI is measured in 05, this will not be a good practice to be inclueded as possible variables. 
           
@@ -417,7 +418,7 @@ nlsy_clean <- nlsy_clean[,-c(1,5,14:44)]
 ```
 
         
-    b)   Run a few regression models between PC1 of all the esteem scores and suitable variables listed in a). Find a final best model with your own criterion. 
+  b)   Run a few regression models between PC1 of all the esteem scores and suitable variables listed in a). Find a final best model with your own criterion. 
 
 ```{r}
 #library(stargazer)
@@ -604,7 +605,7 @@ model3_summary[["r.squared"]]
 
 Using `caret` feature selection algorithm, I identified and ranked the 20 features from 1987 with the highest importance. Put otherwise, the algorithm helps identify variables that have a meaningful impact on the dependent variable (`esteem`). `caret` measures feature importance as the absolute value of the t-statistic for each model parameter. By limiting our model to only important features, we choose a parsimonious model that avoids overfitting. Comparing the saturated model to the chosen model shows that our r-squared (total explained variance) drops from 0.142 to 0.123. Yet, our root mean square error (overall fit of the model), largely remains unchanged (1.2 vs. 1.21). As a result, I chose the model that maintains the 20 features from 1987 with the highest importance.
 
-      - How did you land this model? Run a model diagnosis to see if the linear model assumptions are reasonably met. 
+  - How did you land this model? Run a model diagnosis to see if the linear model assumptions are reasonably met. 
 
 ```{r}
 # linear model assumptions
@@ -616,7 +617,7 @@ plot(model3,2)
 
 I address how I landed on the chosen model in the previous paragraph. In the plots above, I examine whether the model suffers from heteroskedacity and whether it meets the normality assumption. It's hard to tell from the first plot, but it appears as if the variance is roughly constant throughout. The second plot shows that the normality assumption is loosely met. There appears to be slight skewness in the data.
         
-      - Write a summary of your findings. In particular, explain what and how the variables in the model affect one's self-esteem.
+  - Write a summary of your findings. In particular, explain what and how the variables in the model affect one's self-esteem.
 
 Which factors influence an individual's self-esteem? Our regression analysis shows that income, reading newspapers, parental education, intelligence, and certain occupations all significantly affect self-esteem. Most importantly, an individual's intelligence maintains a notable impact on self-esteem. A one-unit increase in intelligence is associated with a 0.094 increase in an individual's self-esteem. The coefficient for intelligence is statistically significant at the 0.01 level. Income, reading the newspaper, and mother's education are also positively correlated with self-esteem and statistically significant. Entertainment workers, managerial occupations, computer scientists, administrative staff, protective service workers, sales employees, and teachers are positively associated with higher esteem, whereas entertainment attendees, health care support, and physical scientists are all negatively associated with self-esteem.
 
@@ -646,13 +647,13 @@ brca_subtype <- brca$BRCA_Subtype_PAM50
 
 1. Summary and transformation
 
-    a) How many patients are there in each sub-type? 
+  a) How many patients are there in each sub-type? 
 ```{r}
 table(brca_subtype)
 ```
 
 
-    b) Randomly pick 5 genes and plot the histogram by each sub-type.
+  b) Randomly pick 5 genes and plot the histogram by each sub-type.
 ```{r}
 ggplot(brca, aes(A2M)) +
   geom_histogram(fill = "#FFDB6D") +
@@ -682,7 +683,7 @@ ggplot(brca, aes(EGF)) +
 ```
 
 
-    c) Remove gene with zero count and no variability. Then apply logarithmic transform.
+  c) Remove gene with zero count and no variability. Then apply logarithmic transform.
     
 ```{r}
 #first remove mRNA if the entire columns are 0. THen apply log(x+1e-10) to each cell to avoid values which are very close to 0
@@ -714,7 +715,7 @@ table(brca_subtype, brca_sub_kmeans$cluster)
 
 3. Spectrum clustering: to scale or not to scale?
 
-    a) Apply PCA on the centered and scaled dataset. How many PCs should we use and why? You are encouraged to use `irlba::irlba()`.
+  a) Apply PCA on the centered and scaled dataset. How many PCs should we use and why? You are encouraged to use `irlba::irlba()`.
 Based on the PVE graph and elbow rule, it seems like we should use 4 PCs
 ```{r}
 num_gene <- ncol(brca)
@@ -733,7 +734,9 @@ plot(pve_apx, type = "b", pch = 19, frame = F)
 
 ```
 
-    b) Plot PC1 vs PC2 of the centered and scaled data and PC1 vs PC2 of the centered but unscaled data side by side. Should we scale or not scale for clustering propose? Why? (Hint: to put plots side by side, use `gridExtra::grid.arrange()` or `ggpubr::ggrrange()` or `egg::ggrrange()` for ggplots; use `fig.show="hold"` as chunk option for base plots)
+  b) Plot PC1 vs PC2 of the centered and scaled data and PC1 vs PC2 of the centered but unscaled data side by side. Should we scale or not scale for clustering propose? Why? (Hint: to put plots side by side, use `gridExtra::grid.arrange()` or `ggpubr::ggrrange()` or `egg::ggrrange()` for ggplots; use `fig.show="hold"` as chunk option for base plots)
+    
+    
 We should use the unscale for clustering purpose. As we can see from the unscaled PC2 VS PC1, there is a clear clustering of group. While the scaled PC2 VS PC1 has less evident of cluster of group
 ```{r}
 #PC1 vs PC2 of the centered and scaled data
@@ -774,7 +777,9 @@ gridExtra::grid.arrange(p1,p2, ncol = 2)
 ```
 4. Spectrum clustering: center but do not scale the data
 
-    a) Use the first 4 PCs of the centered and unscaled data and apply kmeans. Find a reasonable number of clusters using within sum of squared with the elbow rule.
+  a) Use the first 4 PCs of the centered and unscaled data and apply kmeans. Find a reasonable number of clusters using within sum of squared with the elbow rule.
+    
+    
 Using within sum of squared with the elbow rule, it looks like 4 is a reasonable number of clusters
     
 ```{r}
@@ -791,7 +796,7 @@ plot(k.values, wss_values,
      ylab = "Total within-clusters sum of squares")
 ```
     
-    b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
+  b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
     
 From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types. Black dots are the kmeans centroids. Big red dot is the x patient
 ```{r}
@@ -841,7 +846,7 @@ comparison_plot
 
 ```    
     
-    d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered) Plot this patient in the plot in iv) with a black dot. Calculate the Euclidean distance between this patient and each of centroid of the cluster. Can you tell which sub-type this patient might have?
+  d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered) Plot this patient in the plot in iv) with a black dot. Calculate the Euclidean distance between this patient and each of centroid of the cluster. Can you tell which sub-type this patient might have?
 
 After cleaning and centering the x patient data, we calculated the Euclidean distance between this patient and each of centroid of the cluster, which turned out to be 309 from cluster 1, 256 from cluster 2, 107 from cluster 3, 369 from cluster 4. From the which.min function we see that this patient is closes to cluster 3, which should be Basal according to our clustering result.
 
