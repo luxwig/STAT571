@@ -796,16 +796,21 @@ plot(k.values, wss_values,
 From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types.
 ```{r}
 kmean_ret <- kmeans(x = pc_score_unscale, 4)
-p3 <- data.table(x = pc_score_unscale[,1],
-                 y = pc_score_unscale[,2],
-                 col = as.factor(brca_subtype),
-                 cl = as.factor(kmean_ret$cluster)) %>% 
-  ggplot()+
-  geom_point(aes(x = x, y = y, col = col, shape = cl)) +
+d2 <- data.frame(centroid = kmean_ret$centers[, 1:2])
+
+d1 <- data.frame(x1 = pc_score_unscale[,1],
+                 y1 = pc_score_unscale[,2],
+                 col_type = as.factor(brca_subtype),
+                 cluster = as.factor(kmean_ret$cluster))
+
+p3 <- ggplot(data = d1, aes(x = x1, y = y1, col = col_type))+
+  geom_point(aes(x = x1, y = y1, col = col_type, shape = cluster)) +
   scale_color_manual(labels = c("Luminal A", "Luminal B", "HER2-enriched", "Basal-like"),
                      values = scales::hue_pal()(4)) +
   scale_shape_manual(labels = c("Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4"),
                      values = c(2,4,16,18)) +
+  geom_point(data = d1, aes(shape = cluster)) +
+  geom_point(data = d2, aes(x = centroid.1, y = centroid.2), col = "black") +
   theme_bw() +
   labs(color = "Cancer type", shape = "Cluster") +
   xlab("PC1") +
