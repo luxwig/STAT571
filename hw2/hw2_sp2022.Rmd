@@ -790,8 +790,10 @@ plot(k.values, wss_values,
      xlab = "Number of clusters K",
      ylab = "Total within-clusters sum of squares")
 ```
+    
     b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
-    From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types.
+    
+From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types.
 ```{r}
 kmean_ret <- kmeans(x = pc_score_unscale, 4)
 p3 <- data.table(x = pc_score_unscale[,1],
@@ -841,7 +843,6 @@ x_patient.clean <- log2(as.matrix(x_patient.clean+1e-10))
 
 x_patient.centered <- scale(x_patient.clean , center = T, scale = F)
 
-                                  
 x_patient.pcscores <- as.vector(x_patient.centered) %*% svd_brca_unscale$v[,1:4]
 
 x_patient.dist <- kmean_ret$centers - t(matrix((x_patient.pcscores), nrow=4, ncol=4))
