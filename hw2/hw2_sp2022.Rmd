@@ -793,7 +793,7 @@ plot(k.values, wss_values,
     
     b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
     
-From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types.
+From the clustering result we can see that the genes are not well clustered into groups compared to the real sub-type. We can only tell Luminal A apart from the other three gene types, but not the others apart. Perhaps the gene data in this dataset is different from the dataset we learned in class. Other clustering techniques may be needed in order to match the clusters to gene sub-types. Black dots are the kmeans centroids. Big red dot is the x patient
 ```{r}
 kmean_ret <- kmeans(x = pc_score_unscale, 4)
 d2 <- data.frame(centroid = kmean_ret$centers[, 1:2])
@@ -802,6 +802,7 @@ d1 <- data.frame(x1 = pc_score_unscale[,1],
                  y1 = pc_score_unscale[,2],
                  col_type = as.factor(brca_subtype),
                  cluster = as.factor(kmean_ret$cluster))
+d3 <- data.frame(x_pc1 = 1.65, x_pc2 = -4.08)
 
 p3 <- ggplot(data = d1, aes(x = x1, y = y1, col = col_type))+
   geom_point(aes(x = x1, y = y1, col = col_type, shape = cluster)) +
@@ -811,10 +812,12 @@ p3 <- ggplot(data = d1, aes(x = x1, y = y1, col = col_type))+
                      values = c(2,4,16,18)) +
   geom_point(data = d1, aes(shape = cluster)) +
   geom_point(data = d2, aes(x = centroid.1, y = centroid.2), col = "black") +
+  geom_point(data = d3, aes(x = x_pc1, y = x_pc2), col = "dark red", size = 3) +
   theme_bw() +
   labs(color = "Cancer type", shape = "Cluster") +
   xlab("PC1") +
   ylab("PC2")
+
 p3
 ```   
     c) Compare the clustering result from applying kmeans to the original data and the clustering result from applying kmeans to 4 PCs. Does PCA help in kmeans clustering? What might be the reasons if PCA helps?
@@ -837,14 +840,18 @@ comparison_plot <-
 comparison_plot
 
 ```    
+    
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered) Plot this patient in the plot in iv) with a black dot. Calculate the Euclidean distance between this patient and each of centroid of the cluster. Can you tell which sub-type this patient might have?
+
+After cleaning and centering the x patient data, we calculated the Euclidean distance between this patient and each of centroid of the cluster, which turned out to be 309 from cluster 1, 256 from cluster 2, 107 from cluster 3, 369 from cluster 4. From the which.min function we see that this patient is closes to cluster 3, which should be Basal according to our clustering result.
+
 
 ```{r}
 x_patient <- fread("data/brca_x_patient.csv")
 
 # Apply logarithmic transformation
 x_patient.clean <- (x_patient[ , which(colnames(x_patient) %in% colnames(brca_sub))])
-x_patient.clean <- log2(as.matrix(x_patient_co+1e-10))
+x_patient.clean <- log2(as.matrix(x_patient.clean+1e-10))
 
 x_patient.centered <- scale(x_patient.clean , center = T, scale = F)
 
@@ -858,6 +865,7 @@ x_patient.dist
 
 # print which cluster is the closest one to the new paitent
 which.min(x_patient.dist)
+table(brca_subtype, brca_sub_noPCA.kmeans$cluster)
 
 ```
 
@@ -914,7 +922,7 @@ fit3 <- lm(mpg ~ year * horsepower, data = autoData)
 summary(fit3)
 ```
 
-Based on the new regression analysis, the interaction effect is significant at .05 level. The year effect on MPG is moderated by the horsepower In other words, the year effect on MPG is also depends on the horsepower. 
+Based on the new regression analysis, the interaction effect is significant at .05 level. The year effect on MPG is moderated by the horsepower. In other words, the year effect on MPG is also depends on the horsepower. 
 
 ## Categorical predictors
 
@@ -936,17 +944,23 @@ autoLvData <-
   autoData %>%
   mutate(cylinders = as.factor(cylinders))
 
-Anova(lm(mpg ~ cylinders, data = autoLvData))
-summary(lm(mpg ~ cylinders, data = autoLvData))
+auto.anova <- Anova(lm(mpg ~ cylinders, data = autoLvData))
+auto.anova
 ```
 
-The `cylinders` is significant at the 0.01 level. The MPG are significant difference between at least two cylinder groups.
+The `cylinders` is significant at the 0.01 level. The MPG is significant difference between at least two cylinder groups.
 
 c) What are the fundamental differences between treating `cylinders` as a continuous and categorical variable in your models? 
 
-While treating `cylinders` as a continuous variable, we are testing whether MPG has a linear relationship with `cylinders`. However, when treating `cylinders` as a categorical variable, we are testing whether MPG is different between at least two different cylinder groups.
+While treating `cylinders` as a continuous variable, we are testing whether `mpg` has a linear relationship with `cylinders`. In other word, we are asking whether there is a trend between `mpg` and `cylinders`. However, when treating `cylinders` as a categorical variable, we are testing whether MPG is different between at least two different cylinder groups; we are not asking if more `cylinders` would lead to higher or lower `mpg`. 
 
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
+
+Fit0: `mpg` is linear in `cylinders`
+Based on the model from question a), we can reject the null hypothesis at .01 level.
+
+Fit1: `mpg` relates to `cylinders` as a categorical variable 
+Based on the model from question b), we can reject the null hypothesis at .01 level.
 
 
 
@@ -956,94 +970,31 @@ Final modeling question: we want to explore the effects of each feature as best 
   
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
 
+The final model uses `horsepower`, `weight`, `year`, `origin` and `cylinders` as the predictor. It also added the interaction term between `horsepower` and `year`. We treated both `origin` and `cylinders` as factors/leves instead of continuous variables. We also transformed the `mpg` on to a log scale.
+
 ```{r}
-finalFit <- lm(log(mpg) ~  horsepower + weight + year + as.factor(origin) + year*horsepower + as.factor(cylinders), data = autoData)
+finalFit <- lm(log(mpg) ~  weight + horsepower*year + as.factor(origin) + as.factor(cylinders), data = autoData)
 
-finalRes = resid(finalFit)
 summary(finalFit)
-
 plot(finalFit, 1:2)
+
+Anova(finalFit)
 ```
 
 b) Summarize the effects found.
+Based on the summary, all independent variables are are statistically significant.
+This indicates `weight`, `horsepower`, `year`, `origin` and `cylinders` all have statistically significant effects on `log(mpg)`. 
 
 c) Predict the `mpg` of the following car: A red car built in the US in 1983 that is 180 inches long, has eight cylinders, displaces 350 cu. inches, weighs 4000 pounds, and has a horsepower of 260. Also give a 95% CI for your prediction.
 
-
-# Simple Regression through simulations (option)
-    
-## Linear model through simulations
-
-This exercise is designed to help you understand the linear model using simulations. In this exercise, we will generate $(x_i, y_i)$ pairs so that all linear model assumptions are met.
-
-Presume that $\mathbf{x}$ and $\mathbf{y}$ are linearly related with a normal error $\boldsymbol{\varepsilon}$ , such that $\mathbf{y} = 1 + 1.2\mathbf{x} + \boldsymbol{\varepsilon}$. The standard deviation of the error $\varepsilon_i$ is $\sigma = 2$. 
-
-We can create a sample input vector ($n = 40$) for $\mathbf{x}$ with the following code:
-
-```{r, eval = F, echo = TRUE}
-# Generates a vector of size 40 with equally spaced values between 0 and 1, inclusive
-x <- seq(0, 1, length = 40)
+```{r}
+newData <- data.frame(year = 83, cylinders = 8, displacement = 350, weight = 4000, horsepower = 260, origin = 1)
+fit.new <- predict(finalFit, newData, interval = "confidence", level = 0.95)
+fit.new
 ```
 
+The predicted `mpg` for the new car is 2.55, with 95% CI between 2.38 and 2.73.
 
-### Generate data
-
-Create a corresponding output vector for $\mathbf{y}$ according to the equation given above. Use `set.seed(1)`. Then, create a scatterplot with $(x_i, y_i)$ pairs. Base R plotting is acceptable, but if you can, please attempt to use `ggplot2` to create the plot. Make sure to have clear labels and sensible titles on your plots.
-
-
-### Understand the model
-i. Find the LS estimates of $\boldsymbol{\beta}_0$ and $\boldsymbol{\beta}_1$, using the `lm()` function. What are the true values of $\boldsymbol{\beta}_0$ and $\boldsymbol{\beta}_1$? Do the estimates look to be good? 
-
-ii. What is your RSE for this linear model fit? Is it close to $\sigma = 2$? 
-
-ii. What is the 95% confidence interval for $\boldsymbol{\beta}_1$? Does this confidence interval capture the true $\boldsymbol{\beta}_1$?
-
-iii. Overlay the LS estimates and the true lines of the mean function onto a copy of the scatterplot you made above.
-
-
-### diagnoses
-
-i. Provide residual plot where fitted $\mathbf{y}$-values are on the x-axis and residuals are on the y-axis. 
-
-ii. Provide a normal QQ plot of the residuals.
-
-iii. Comment on how well the model assumptions are met for the sample you used. 
-
-
-
-## Understand sampling distribution and confidence intervals
-
-This part aims to help you understand the notion of sampling statistics and confidence intervals. Let's concentrate on estimating the slope only.  
-
-Generate 100 samples of size $n = 40$, and estimate the slope coefficient from each sample. We include some sample code below, which should guide you in setting up the simulation. Note: this code is easier to follow but suboptimal; see the appendix for a more optimal R-like way to run this simulation.
-```{r, eval = F, echo = TRUE}
-# Inializing variables. Note b_1, upper_ci, lower_ci are vectors
-x <- seq(0, 1, length = 40) 
-n_sim <- 100              # number of simulations
-b1 <- 0                   # n_sim many LS estimates of beta_1 (=1.2). Initialize to 0 for now
-upper_ci <- 0             # upper bound for beta_1. Initialize to 0 for now.
-lower_ci <- 0             # lower bound for beta_1. Initialize to 0 for now.
-t_star <- qt(0.975, 38)   # Food for thought: why 38 instead of 40? What is t_star?
-
-# Perform the simulation
-for (i in 1:n_sim){I l
-  y <- 1 + 1.2 * x + rnorm(40, sd = 2)
-  lse <- lm(y ~ x)
-  lse_output <- summary(lse)$coefficients
-  se <- lse_output[2, 2]
-  b1[i] <- lse_output[2, 1]
-  upper_ci[i] <- b1[i] + t_star * se
-  lower_ci[i] <- b1[i] - t_star * se
-}
-results <- as.data.frame(cbind(se, b1, upper_ci, lower_ci))
-
-# remove unecessary variables from our workspace
-rm(se, b1, upper_ci, lower_ci, x, n_sim, b1, t_star, lse, lse_out) 
-```
-
-i. Summarize the LS estimates of $\boldsymbol{\beta}_1$ (stored in `results$b1`). Does the sampling distribution agree with theory? 
-
-ii.  How many of your 95% confidence intervals capture the true $\boldsymbol{\beta}_1$? Display your confidence intervals graphically. 
 
 
 
