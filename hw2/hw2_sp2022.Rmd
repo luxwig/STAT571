@@ -837,7 +837,7 @@ x_patient <- fread("data/brca_x_patient.csv")
 
 # Apply logarithmic transformation
 x_patient.clean <- (x_patient[ , which(colnames(x_patient) %in% colnames(brca_sub))])
-x_patient.clean <- log2(as.matrix(x_patient_co+1e-10))
+x_patient.clean <- log2(as.matrix(x_patient.clean+1e-10))
 
 x_patient.centered <- scale(x_patient.clean , center = T, scale = F)
 
