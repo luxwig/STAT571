@@ -30,7 +30,7 @@ knitr::opts_chunk$set(echo = TRUE, results =TRUE,include = TRUE, fig.width=8, fi
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, data.table,skimr,ggcorrplot,knitr,factoextra,conflicted,fastDummies,caret,stargazer,irlba) # add the packages needed
+pacman::p_load(ISLR, data.table,skimr,ggcorrplot,knitr,factoextra,conflicted,fastDummies,caret,stargazer,irlba,GGally,car) # add the packages needed
 if(!require('irlba')) {install.packages('irlba')}
 #remotes::install_github('vqv/ggbiplot')
 library(ggbiplot)
@@ -837,7 +837,11 @@ Explore the data, with particular focus on pairwise plots and summary statistics
 ```{r}
 autoData <- ISLR::Auto
 skim(autoData)
+pairs(autoData)
+
 ```
+
+There is no missing data for all variables. The ``cylinders``, ``origin`` and  ``year`` have uneven distributions for the sampled dataset.
 ## What effect does `time` have on `MPG`?
 
 a) Start with a simple regression of `mpg` vs. `year` and report R's `summary` output. Is `year` a significant variable at the .05 level? State what effect `year` has on `mpg`, if any, according to this model. 
@@ -862,7 +866,8 @@ Based on the new regression analysis, `year` is still a significant variable at 
 
 c) The two 95% CI's for the coefficient of year differ among (i) and (ii). How would you explain the difference to a non-statistician?
 
-The second model (ii) has a narrower 95% CI compared to the first one (i). The second model uses two variables to predict the outcome (MPG) instead of on one, which improve the fitness overall. With a better fitness, we are more confident about our estimation of the relationship between the year and MPG, which results in a narrower CI.
+For this case, compared to only use one variable `year` [model (i)], with two variables [model (ii)], we can predict better and more confident since we have more control over the model. With better confidence, we will have a narrower CI.
+
 
 d) Create a model with interaction by fitting `lm(mpg ~ year * horsepower)`. Is the interaction effect significant at .05 level? Explain the year effect (if any). 
 
@@ -893,8 +898,8 @@ autoLvData <-
   autoData %>%
   mutate(cylinders = as.factor(cylinders))
 
-fit5 <- aov(mpg ~ cylinders, data = autoLvData)
-summary(fit5)
+Anova(lm(mpg ~ cylinders, data = autoLvData))
+summary(lm(mpg ~ cylinders, data = autoLvData))
 ```
 
 The `cylinders` is significant at the 0.01 level. The MPG are significant difference between at least two cylinder groups.
@@ -906,6 +911,7 @@ While treating `cylinders` as a continuous variable, we are testing whether MPG 
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
 
 
+
 ## Results
 
 Final modeling question: we want to explore the effects of each feature as best as possible. You may explore interactions, feature transformations, higher order terms, or other strategies within reason. The model(s) should be as parsimonious (simple) as possible unless the gain in accuracy is significant from your point of view.
@@ -913,7 +919,7 @@ Final modeling question: we want to explore the effects of each feature as best 
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
 
 ```{r}
-finalFit <- lm(log(mpg) ~  horsepower + weight + year + origin, data = autoData)
+finalFit <- lm(log(mpg) ~  horsepower + weight + year + as.factor(origin) + year*horsepower + as.factor(cylinders), data = autoData)
 
 finalRes = resid(finalFit)
 summary(finalFit)
