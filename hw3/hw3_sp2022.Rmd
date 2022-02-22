@@ -87,9 +87,38 @@ a) You may explore the possibility of variable transformations. We normally do n
 
 In addition, can you provide some background knowledge to support the notion: it makes more sense to model `GPM`?  
 
+From comparing the residual plots, we can see that GPM (1/MPG) is a better response variable than GPM. The GPM residual plot shows a fairly random pattern and the estimated regression line is straight, indicating that the model is appropriate for the data. The MPG residual plot has a slight U-shape pattern and the estimated regression line is not straight, indicating that the model is less appropriate for the data. 
+
+Fuel efficiencies are curvilinear, the higher mpg ratings go up, after about 20 mpg, the more efficiencies flatten out. The gpm, on the other hand, measures the gallon used per mile. 
+```{r}
+library(ISLR)
+auto <- ISLR::Auto
+
+auto$gpm <- 1 / auto$mpg
+plot(lm(mpg ~ cylinders + displacement + horsepower + weight, data = auto), 1)
+plot(lm(gpm ~ cylinders + displacement + horsepower + weight, data = auto), 1)
+
+```
+
 b) You may also explore by adding interactions and higher order terms. The model(s) should be as *parsimonious* (simple) as possible, unless the gain in accuracy is significant from your point of view. 
 
+```{r}
+m1 <- lm(mpg ~ cylinders + displacement + horsepower + weight, data = auto)
+summary(m1)
+#fit with higher order tersm
+m2 <- lm(mpg ~ cylinders + displacement + horsepower + weight + as.factor(origin), data = auto)
+summary(m2)
+m3 <- lm(mpg ~ cylinders + displacement + horsepower + weight + as.factor(origin)+ horsepower : as.factor(origin), data = auto)
+summary(m3)
+
+anova(m2,m3)
+```
+
 c) Use Mallow's $C_p$ or BIC to select the model.
+
+```{r}
+
+```
 
 2) Describe the final model and its accuracy. Include diagnostic plots with particular focus on the model residuals.
 
@@ -97,6 +126,10 @@ c) Use Mallow's $C_p$ or BIC to select the model.
   * Predict the `mpg` of a car that is: built in 1983, in the US, red, 180 inches long, 8 cylinders, 350 displacement, 260 as horsepower, and weighs 4,000 pounds. Give a 95% CI.
   * Any suggestions as to how to improve the quality of the study?
 
+
+```{r}
+
+```
 
 # Case study 2: COVID
 
