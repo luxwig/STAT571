@@ -1,9 +1,9 @@
 ---
 title: "Modern Data Mining, HW 3"
 author:
-- Group Member 1
-- Group Member 2
-- Group Member 3
+- Ludwig Zhao
+- Nick Pangakis
+- Xinyi Wang
 date: 'Due: 11:59Pm,  2/27, 2022'
 output:
   pdf_document:
@@ -30,7 +30,7 @@ knitr::opts_chunk$set(echo = T, fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, readxl, magrittr, dplyr, ggplot2) # add the packages needed
+pacman::p_load(ISLR, readxl, magrittr, dplyr, ggplot2,car) # add the packages needed
 if(!require('leaps')) {install.packages('leaps')}
 library('leaps')
 ```
@@ -139,18 +139,17 @@ f1$cp
 
 plot(f1$cp, xlab = "Number of predictors", ylab = "Cp",
      col = "green", pch = 16)
-#Cp shows that a model with 2 variables has smaller prediction error
-#output the best model with 2 variables
-coef(fit1, 2)
+#Cp shows that a model with 3 variables has smaller prediction error
+#output the best model with 3 variables
+coef(fit1, 3)
 #look for the optimal model size by Cp
 opt.size <- which.min(f1$cp)
 opt.size
-
 #look for optimal variables selected
 fit1.var <- f1$which
 fit1.var[opt.size,]
 
-colnames(fit1.var)[fit1.var[2,]]
+colnames(fit1.var)[fit1.var[3,]]
 ```
 
 
@@ -162,8 +161,24 @@ colnames(fit1.var)[fit1.var[2,]]
 
 
 ```{r}
+fit.final <- lm(gpm ~ horsepower + weight + year, data=auto)
+summary(fit.final)
+plot(fit.final,1:2)
+Anova(fit.final)
 
+newData <- data.frame(year = 83, cylinders = 8, displacement = 350, weight = 4000, horsepower = 260, origin = 1)
+fit.new <- predict(fit.final, newData, interval = "confidence", level = 0.95)
+1/fit.new
 ```
+
+The final model uses horsepower, weight and year as the predictors. 
+The residual sum of square is 0.01289 and $R^2$ is 0.881. All variables are statsically significant.
+From the regression, the ``gpm`` increases as ``horsepower`` and ``weight`` increase. 
+``gpm`` decreases as ``year`` increase. 
+
+For the prediction, the new car is expected to have ``mpg`` of 15.6 with 95% CI from 14.6 to 16.7.
+
+For the suggestion to improve the study, one way is to exclude those cars that are outliers, such as those sports cars as they may have different ``mpg`` prediction model compare to regular cars.
 
 # Case study 2: COVID
 
