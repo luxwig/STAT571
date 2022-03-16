@@ -20,9 +20,10 @@ urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 4)
 if(!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr, ggplot2, glmnet, car, data.table)   #add your packages here
+pacman::p_load(dplyr, ggplot2, glmnet, car, data.table, gridExtra)   #add your packages here
+theme_set(theme_minimal())
+knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 6)
 ```
 
 
@@ -176,6 +177,41 @@ A suggested outline of the report would include the following components:
 
 i) Data Summary /EDA
 
+
+```{r EDA}
+dia <- read.csv("readmission.csv") %>% 
+  select(c(-encounter_id,-patient_nbr)) %>%
+  mutate(race = ifelse(race=="?",NA,race)) %>% 
+  filter(gender != "Unknown/Invalid") %>%
+  group_by(readmitted)
+
+p1 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=gender)) +
+  ggtitle("Demographics Distribution") + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Gender"))
+
+p2 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=race)) + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Race"))
+
+p3 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=age_mod)) + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Age Group"))
+
+grid.arrange(p1,p2,p3, nrow=3)
+
+for (i in c("age_mod", "gender", "race", "readmitted")) {
+tmp <- dia %>% 
+    group_by(!!sym(i)) %>%
+    summarise(cnt = n()) %>%
+    mutate(ratio = cnt/sum(cnt))
+print(tmp)
+}
+
+```
 * Nature of the data, origin
 * Necessary quantitative and graphical summaries
 * Are there any problems with the data?
@@ -197,7 +233,9 @@ Maintain a good descriptive flow in the text of your report. Use Appendices to d
 iii) Appendix
 	
 * Any thing necessary to keep but for which you don’t want them to be in the main report.
-
+```{r}
+skimr::skim(dia)
+```
 
 <!-- # Collaboration -->
 
