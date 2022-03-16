@@ -213,8 +213,14 @@ print(tmp)
 
 ```
 * Nature of the data, origin
+  The data comes from Center for Clinical and Translational Research(https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth University. It covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008. There are over 100,000 unique hospital admissions in this dataset, from about 70,000 unique patients. 
+ 
 * Necessary quantitative and graphical summaries
+  From the over 100,000 unique hospital admissions, Gender wise, 53.8% of them are female and 46.2% of them are male. Age wise, 0.8% of them are between 0-19 years old, 31.8% of them are between 20-59 yeas old, 47.7% of them are between 60-79 years old, 19.6% of them are over 80 years old. Race wise, 18.9% are African American, 0.6% are Asian, 74.8% are Caucasian, 2% are Hispanic, 1.5% are Other and 2.2% are unknown. Looking at readmission level, 11.2% of them were readmissioned within 30 days, 34.9% were readmissioned more than 30 days, 53.9% of them were not readmissioned. 
+  The graphical summary of demographic distribution shows number of entries for gender, race, and age group divided by the readmission level. We can see that gender shows relatively the same pattern among those with different readmission level, relatively more female than male. Race also shows similar pattern among those with different readmission level, overall caucasion are the main admission patients. Looking at age, those who are between 60-79 are the highest number compare to other age groups, the second highest are those between 20-59, the third highest are those over 80 years old. 
+  
 * Are there any problems with the data?
+  The data has several issues. 
 * Which variables are considered as input 
 	
 ii) Analyses
@@ -233,9 +239,7 @@ Maintain a good descriptive flow in the text of your report. Use Appendices to d
 iii) Appendix
 	
 * Any thing necessary to keep but for which you don’t want them to be in the main report.
-```{r}
-skimr::skim(dia)
-```
+
 
 <!-- # Collaboration -->
 
