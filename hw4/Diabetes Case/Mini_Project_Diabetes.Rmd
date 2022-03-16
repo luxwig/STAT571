@@ -229,7 +229,7 @@ dia.y <- as.matrix(dia.cleaned$readmitted)
 
 #fit.cv <- cv.glmnet(x = dia.x, y = dia.y, alpha=1, family="binomial", nfolds = 10, type.measure = "deviance")  
 #saveRDS(fit.cv, "fit.RDS")
-#loadRDS("fit.RDS")
+loadRDS("fit.RDS")
 plot(fit.cv)
 coef.1se <- coef(fit.cv, s="lambda.1se")  
 coef.1se <- coef.1se[which(coef.1se !=0),] 
