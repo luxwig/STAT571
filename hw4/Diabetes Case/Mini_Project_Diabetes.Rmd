@@ -24,6 +24,7 @@ if(!require("pacman")) install.packages("pacman")
 pacman::p_load(dplyr, ggplot2, glmnet, car, data.table, gridExtra)   #add your packages here
 theme_set(theme_minimal())
 knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 6)
+set.seed(10)
 ```
 
 
@@ -182,8 +183,7 @@ i) Data Summary /EDA
 dia <- read.csv("readmission.csv") %>% 
   select(c(-encounter_id,-patient_nbr)) %>%
   mutate(race = ifelse(race=="?",NA,race)) %>% 
-  filter(gender != "Unknown/Invalid") %>%
-  group_by(readmitted)
+  filter(gender != "Unknown/Invalid") 
 
 p1 <- ggplot(data = dia, aes(x = readmitted)) +
   geom_bar(position = position_dodge(), aes(fill=gender)) +
@@ -219,9 +219,42 @@ print(tmp)
 	
 ii) Analyses
 
+
+```{r}
+dia.cleaned <- dia %>%
+  filter(!is.na(race)) %>%
+  mutate(readmitted = ifelse(readmitted == "<30", TRUE, FALSE))
+dia.x <- model.matrix(readmitted~., data=dia.cleaned)[, -1]
+dia.y <- as.matrix(dia.cleaned$readmitted)
+
+#fit.cv <- cv.glmnet(x = dia.x, y = dia.y, alpha=1, family="binomial", nfolds = 10, type.measure = "deviance")  
+#saveRDS(fit.cv, "fit.RDS")
+#loadRDS("fit.RDS")
+plot(fit.cv)
+coef.1se <- coef(fit.cv, s="lambda.1se")  
+coef.1se <- coef.1se[which(coef.1se !=0),] 
+rownames(as.matrix(coef.1se))
+```
+
+
+```{r}
+fit.logit <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+age_mod+diag1_mod+diag3_mod, data = dia.cleaned, family=binomial)
+Anova(fit.logit)
+```
+
+```{r}
+fit.logit.new <- glm(readmitted ~ +number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+age_mod+diag1_mod+diag3_mod, data = dia.cleaned, family=binomial)
+Anova(fit.logit.new)
+anova(fit.logit.new, fit.logit, test="Chisq")
+```
+
+```{r}
+summary(fit.logit.new)
+```
 * Various appropriate statistical methods: e.g. glmnet 
 * Comparisons various models
 * Final model(s)
+
 
 iii) Conclusion
 
