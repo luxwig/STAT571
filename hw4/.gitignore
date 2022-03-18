@@ -2,4 +2,4 @@
 !*.Rmd
 !*.Rproj
 !.gitignore
-!*.RDS
+!fit.RDS

@@ -225,6 +225,11 @@ print(tmp)
 	
 ii) Analyses
 
+The data set is first divided into 3 sets for training (40%), testing (20%) and validation (20%).
+
+Data regularization is first performed through elastic net via ``glmnet``.
+The ``alpha`` is set to 0.99 to increase the stability of the algorithm.
+The optimal $\lambda = 0.005618101$ is selected using cross validation.
 
 
 ```{r}
@@ -255,13 +260,22 @@ fit.cv <- readRDS("fit.RDS")
 plot(fit.cv)
 coef.1se <- coef(fit.cv, s="lambda.1se")  
 coef.1se <- coef.1se[which(coef.1se !=0),] 
-rownames(as.matrix(coef.1se))
+#rownames(as.matrix(coef.1se))
 ```
+The sparse model after regularization uses following predictors:
+
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+AVNOA is performed to examine the statistical significance of each variable as shown below:
 
 ```{r LASSO Results}
 fit.lasso <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = data.train, family=binomial)
 Anova(fit.lasso)
+```
 
+
+As suggested, ``time_in_hospital`` is not significant and therefore is removed. 
+```{r}
 fit.lasso <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = dia.cleaned, family=binomial)
 Anova(fit.lasso)
 summary(fit.lasso)
@@ -286,9 +300,9 @@ Xy.design <- Xy.design %>%
   select(c(1:10,18,30,33))
 Xy <-  data.frame(Xy.design, data.train$readmitted)   
 
-fit.bestglm <- bestglm(Xy, family = binomial, method = "backward", IC="AIC", nvmax = 10) 
-saveRDS(fit.bestglm, "bestglm .RDS")
-fit.bestglm <- readRDS("bestglm .RDS")
+#fit.bestglm <- bestglm(Xy, family = binomial, method = "backward", IC="AIC", nvmax = 10) 
+#saveRDS(fit.bestglm, "bestglm .RDS")
+fit.bestglm <- readRDS("bestglm.RDS")
 fit.bestglm$BestModels
 ```
 ```{r Bestglm Result}
@@ -300,32 +314,57 @@ Anova(fit.reduced)
 summary(fit.reduced)
 ```
 ```{r}
-
 type.lung <- c("491","493","518","786")
-type.infection <- c("38")
+type.infection <- c("38", "682")
+type.neuro <- c("250.6", "434", "435")
+type.heart <- c("410", "414", "427", "428")
+data.train.new <- data.train %>%
+  mutate(diag1new = case_when(
+      is.element(diag1_mod,type.lung) ~ "Lung", 
+      is.element(diag1_mod,type.infection) ~ "Infection",
+      is.element(diag1_mod,type.neuro) ~ "Neuro",
+      is.element(diag1_mod,type.heart) ~ "Heart",
+      TRUE ~ "Other"
+    )
+  )
+
+
+fit.new <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1new, family = "binomial", data = data.train.new)
+Anova(fit.new)
+summary(fit.new)
 ```
 ```{r}
 
 data.test.binned <- data.test %>% 
   mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
 
+data.test.new.binned <- data.test  %>%
+  mutate(diag1new = case_when(
+      is.element(diag1_mod,type.lung) ~ "Lung", 
+      is.element(diag1_mod,type.infection) ~ "Infection",
+      is.element(diag1_mod,type.neuro) ~ "Neuro",
+      is.element(diag1_mod,type.heart) ~ "Heart",
+      TRUE ~ "Other"
+    )
+  )
 
 fit.lasso.test <- predict(fit.lasso, data.test, type="response")
 fit.reduced.test <- predict(fit.reduced, data.test.binned, type="response")
+fit.new.test <- predict(fit.new, data.test.new.binned, type="response")
 
 fit.lasso.test.roc <- roc(data.test$readmitted, fit.lasso.test)
 fit.reduced.test.roc <- roc(data.test$readmitted, fit.reduced.test)
+fit.new.test.roc <- roc(data.test$readmitted, fit.new.test)
 
 plot(1-fit.lasso.test.roc$specificities, fit.lasso.test.roc$sensitivities, 
-     col="red", type="l", lwd=3, 
-     xlab=paste("AUC(fit.lasso.test.roc) =",
-                round(pROC::auc(fit.lasso.test.roc),2),
-                "  AUC(fit.reduced.test.roc) =",
-                round(pROC::auc(fit.reduced.test.roc),2)), 
+     col="red", type="l", lwd=3,
+     xlab = "False Positive",
      ylab="Sensitivities")
 lines(1-fit.reduced.test.roc$specificities, fit.reduced.test.roc$sensitivities, col="blue", lwd=3)
-legend("bottomright", legend=c("fit.lasso.test", "fit.reduced.test"),
-       lty=c(1,1), lwd=c(2,2), col=c("red", "blue"))
+lines(1-fit.new.test.roc$specificities, fit.new.test.roc$sensitivities, col="green", lwd=3)
+
+legend("bottomright", legend=c("fit.lasso.test", "fit.reduced.test", "fit.newtest"),
+       lty=c(1,1,1), lwd=c(2,2,2), col=c("red", "blue","green"))
 title("Comparison of two models using testing data")
 ```
 
@@ -338,10 +377,11 @@ plot(1-fit.lasso.val.roc$specificities, fit.lasso.val.roc$sensitivities,
                 round(pROC::auc(fit.lasso.val.roc),2)), 
      ylab="Sensitivities")
 ```
+
+
 * Various appropriate statistical methods: e.g. glmnet 
 * Comparisons various models
 * Final model(s)
-
 
 iii) Conclusion
 
