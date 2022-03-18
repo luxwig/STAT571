@@ -21,7 +21,7 @@ urlcolor: blue
 
 ```{r setup, include=FALSE}
 if(!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr, ggplot2, glmnet, car, data.table, gridExtra)   #add your packages here
+pacman::p_load(pROC, dplyr, ggplot2, glmnet, car, data.table, gridExtra, bestglm, caret)   #add your packages here
 theme_set(theme_minimal())
 knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 6)
 set.seed(10)
@@ -220,36 +220,117 @@ print(tmp)
 ii) Analyses
 
 
+
 ```{r}
 dia.cleaned <- dia %>%
   filter(!is.na(race)) %>%
   mutate(readmitted = ifelse(readmitted == "<30", TRUE, FALSE))
-dia.x <- model.matrix(readmitted~., data=dia.cleaned)[, -1]
-dia.y <- as.matrix(dia.cleaned$readmitted)
 
-#fit.cv <- cv.glmnet(x = dia.x, y = dia.y, alpha=1, family="binomial", nfolds = 10, type.measure = "deviance")  
+N = length(dia.cleaned$readmitted)
+n1 = floor(.6*N)
+n2 = floor(.2*N)
+
+idx_train <- sample(N, n1)
+idx_no_train <- (which(! seq(1:N) %in% idx_train))
+idx_test <- sample( idx_no_train, n2)
+idx_val <- which(! idx_no_train %in% idx_test)
+data.train <- dia.cleaned[idx_train,]
+data.test <- dia.cleaned[idx_test,]
+data.val <- dia.cleaned[idx_val,]
+```
+
+```{r LASSO}
+dia.x <- model.matrix(readmitted~., data=data.train)[, -1]
+dia.y <- as.matrix(data.train$readmitted)
+
+#fit.cv <- cv.glmnet(x = dia.x, y = dia.y, alpha=0.99, family="binomial", nfolds = 10, type.measure = "deviance")  
 #saveRDS(fit.cv, "fit.RDS")
-loadRDS("fit.RDS")
+fit.cv <- readRDS("fit.RDS")
 plot(fit.cv)
 coef.1se <- coef(fit.cv, s="lambda.1se")  
 coef.1se <- coef.1se[which(coef.1se !=0),] 
 rownames(as.matrix(coef.1se))
 ```
 
+```{r LASSO Results}
+fit.lasso <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = data.train, family=binomial)
+Anova(fit.lasso)
 
+fit.lasso <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = dia.cleaned, family=binomial)
+Anova(fit.lasso)
+summary(fit.lasso)
+```
 ```{r}
-fit.logit <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+age_mod+diag1_mod+diag3_mod, data = dia.cleaned, family=binomial)
-Anova(fit.logit)
+fit.lasso.coef<-coef(fit.lasso)
+fit.lasso.p <- summary(fit.lasso)
+fit.lasso.coef<-sort(fit.lasso.coef[fit.lasso.p$coefficients[,4]<0.01])
+fit.lasso.coef
+names(fit.lasso.coef)
+```
+```{r Bestglm}
+Xy.design <- model.matrix(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod+0, data.train) 
+
+cindx = colnames(Xy.design)
+cindx = cindx[c(1:10,18,30,33)]
+
+cindx<-lapply(cindx,sym)
+Xy.design <- data.frame(Xy.design)
+Xy.design <- Xy.design %>%
+  mutate(diag1_modOther = ifelse(diag1_mod434==0 & diag1_mod786==0, 1, 0)) %>%
+  select(c(1:10,18,30,33))
+Xy <-  data.frame(Xy.design, data.train$readmitted)   
+
+fit.bestglm <- bestglm(Xy, family = binomial, method = "backward", IC="AIC", nvmax = 10) 
+saveRDS(fit.bestglm, "bestglm .RDS")
+fit.bestglm <- readRDS("bestglm .RDS")
+fit.bestglm$BestModels
+```
+```{r Bestglm Result}
+data.train.binned <- data.train %>% 
+  mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
+
+fit.reduced <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, family = "binomial", data =  data.train.binned)
+Anova(fit.reduced)
+summary(fit.reduced)
+```
+```{r}
+
+type.lung <- c("491","493","518","786")
+type.infection <- c("38")
+```
+```{r}
+
+data.test.binned <- data.test %>% 
+  mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
+
+
+fit.lasso.test <- predict(fit.lasso, data.test, type="response")
+fit.reduced.test <- predict(fit.reduced, data.test.binned, type="response")
+
+fit.lasso.test.roc <- roc(data.test$readmitted, fit.lasso.test)
+fit.reduced.test.roc <- roc(data.test$readmitted, fit.reduced.test)
+
+plot(1-fit.lasso.test.roc$specificities, fit.lasso.test.roc$sensitivities, 
+     col="red", type="l", lwd=3, 
+     xlab=paste("AUC(fit.lasso.test.roc) =",
+                round(pROC::auc(fit.lasso.test.roc),2),
+                "  AUC(fit.reduced.test.roc) =",
+                round(pROC::auc(fit.reduced.test.roc),2)), 
+     ylab="Sensitivities")
+lines(1-fit.reduced.test.roc$specificities, fit.reduced.test.roc$sensitivities, col="blue", lwd=3)
+legend("bottomright", legend=c("fit.lasso.test", "fit.reduced.test"),
+       lty=c(1,1), lwd=c(2,2), col=c("red", "blue"))
+title("Comparison of two models using testing data")
 ```
 
 ```{r}
-fit.logit.new <- glm(readmitted ~ +number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+age_mod+diag1_mod+diag3_mod, data = dia.cleaned, family=binomial)
-Anova(fit.logit.new)
-anova(fit.logit.new, fit.logit, test="Chisq")
-```
-
-```{r}
-summary(fit.logit.new)
+fit.lasso.val <- predict(fit.lasso, data.val, type="response")
+fit.lasso.val.roc <- roc(data.val$readmitted, fit.lasso.val)
+plot(1-fit.lasso.val.roc$specificities, fit.lasso.val.roc$sensitivities, 
+     col="red", type="l", lwd=3, 
+     xlab=paste("AUC(fit.lasso.val.roc) =",
+                round(pROC::auc(fit.lasso.val.roc),2)), 
+     ylab="Sensitivities")
 ```
 * Various appropriate statistical methods: e.g. glmnet 
 * Comparisons various models
