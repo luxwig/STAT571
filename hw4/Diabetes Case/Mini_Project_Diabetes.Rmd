@@ -21,7 +21,7 @@ urlcolor: blue
 
 ```{r setup, include=FALSE}
 if(!require("pacman")) install.packages("pacman")
-pacman::p_load(dplyr, ggplot2, glmnet, car, data.table, gridExtra)   #add your packages here
+pacman::p_load(dplyr, ggplot2, glmnet, car, data.table, skimr)   #add your packages here
 theme_set(theme_minimal())
 knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 6)
 set.seed(10)
@@ -169,8 +169,13 @@ A suggested outline of the report would include the following components:
 
 * This section should be accessible by people with very little statistical background (avoid using technical words and no direct R output is allowed)
 * Give a background of the study. You may check the original website or other sources to fill in some details, such as to why the questions we address here are important. 
+  The goal of this study is to identify the important factors that may contribute to being readmitted to the hospital within 30 days of discharge. It is estimated that 9.3% of the population in the United States have diabetes mellitus, 28% of which are undiagnosed. By recognizing leading factors that contribute to readmission, healthcare workers can change the treatment in order to avoid a readmission, improving patients' outcomes. Knowing these will also help reduce the costs for the hospital, benefiting both the hospital and patients. 
 * A quick summary about the data.
+  This dataset comes from the Center for Clinical and Transnational Research (https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth that covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008.
+  
 * Methods used and the main findings.
+  
+
 * You may use clearly labelled and explained visualizations.
 * Issues, concerns, limitations of the conclusions. This is an especially important section to be honest in - we might be Penn students, but we are statisticians today.
 
@@ -220,7 +225,7 @@ print(tmp)
   The graphical summary of demographic distribution shows number of entries for gender, race, and age group divided by the readmission level. We can see that gender shows relatively the same pattern among those with different readmission level, relatively more female than male. Race also shows similar pattern among those with different readmission level, overall caucasion are the main admission patients. Looking at age, those who are between 60-79 are the highest number compare to other age groups, the second highest are those between 20-59, the third highest are those over 80 years old. 
   
 * Are there any problems with the data?
-  The data has several issues. 
+  The data overall has no major problems. Some demographic variables have missing values, race had 2273 entries that were "?". We had to remove these for the glm analysis.
 * Which variables are considered as input 
 	
 ii) Analyses
@@ -273,7 +278,3 @@ iii) Appendix
 	
 * Any thing necessary to keep but for which you don’t want them to be in the main report.
 
-
-<!-- # Collaboration -->
-
-<!-- This is an **individual** assignment. We will only allow private Piazza posts for questions. If there are questions that are generally useful, we will release that information. -->
