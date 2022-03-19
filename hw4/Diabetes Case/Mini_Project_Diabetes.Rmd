@@ -223,14 +223,16 @@ print(tmp)
   The data has several issues. 
 * Which variables are considered as input 
 	
-ii) Analyses
+# Analyses
 
-The data set is first divided into 3 sets for training (40%), testing (20%) and validation (20%).
+The data set is first divided into 3 sets for training (40%), testing (20%) and validation (20%). 
+All the models use logistic regression estimated by maximum likelihood estimation. 
+
+## Regularization
 
 Data regularization is first performed through elastic net via ``glmnet``.
 The ``alpha`` is set to 0.99 to increase the stability of the algorithm.
 The optimal $\lambda = 0.005618101$ is selected using cross validation.
-
 
 ```{r}
 dia.cleaned <- dia %>%
@@ -260,7 +262,6 @@ fit.cv <- readRDS("fit.RDS")
 plot(fit.cv)
 coef.1se <- coef(fit.cv, s="lambda.1se")  
 coef.1se <- coef.1se[which(coef.1se !=0),] 
-#rownames(as.matrix(coef.1se))
 ```
 The sparse model after regularization uses following predictors:
 
@@ -273,20 +274,28 @@ fit.lasso <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+
 Anova(fit.lasso)
 ```
 
-
 As suggested, ``time_in_hospital`` is not significant and therefore is removed. 
+After adjusted the model to the following,
+
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+all variables are significant as shown below:
+
 ```{r}
 fit.lasso <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = dia.cleaned, family=binomial)
 Anova(fit.lasso)
-summary(fit.lasso)
 ```
-```{r}
-fit.lasso.coef<-coef(fit.lasso)
-fit.lasso.p <- summary(fit.lasso)
-fit.lasso.coef<-sort(fit.lasso.coef[fit.lasso.p$coefficients[,4]<0.01])
-fit.lasso.coef
-names(fit.lasso.coef)
-```
+
+## AIC-based Model Reduction 
+
+For model reduction based on AIC, ``bestglm`` is used to. One major drawback is that ``bestglm`` can only take 15 variables while the module from regularization 
+as some categorical variables have multiple levels. From ``glmnet`` output with the optimal $\lamdba$$ , it is indicated that only 2 of 24 levels (434 and 786) are non-zero for ``diag1_mod``. Therefore, the variable ``diag1_mod`` is binned into 3 levels: 434, 786 and others.
+
+Based on ``bestglm`` results, the model is as following:
+
+
+$$\text{Readmitted} \sim   \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
 ```{r Bestglm}
 Xy.design <- model.matrix(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod+0, data.train) 
 
@@ -303,16 +312,38 @@ Xy <-  data.frame(Xy.design, data.train$readmitted)
 #fit.bestglm <- bestglm(Xy, family = binomial, method = "backward", IC="AIC", nvmax = 10) 
 #saveRDS(fit.bestglm, "bestglm .RDS")
 fit.bestglm <- readRDS("bestglm.RDS")
-fit.bestglm$BestModels
+#fit.bestglm$BestModels
 ```
+
+The ANOVA tests shows that all variables are statically significant.
+
 ```{r Bestglm Result}
 data.train.binned <- data.train %>% 
   mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
 
 fit.reduced <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, family = "binomial", data =  data.train.binned)
-Anova(fit.reduced)
+# Anova(fit.reduced)
 summary(fit.reduced)
 ```
+
+
+## Other Alternative Models
+
+By visually examine the coefficients and their $p$-values of the model after regularization,
+```{r}
+fit.lasso.coef<-coef(fit.lasso)
+fit.lasso.p <- summary(fit.lasso)
+fit.lasso.coef<-sort(fit.lasso.coef[fit.lasso.p$coefficients[,4]<0.01])
+#fit.lasso.coef
+#names(fit.lasso.coef)
+summary(fit.lasso)
+```
+some levels of ``diag1_mod`` are significant while others are not. What is more interesting is that, diagnosis within the same boarder category (such as diagnosis related to heart, lung, nerves and infection) tends to have similar coefficients. 
+
+Therefore, ``diag1_mod`` are binned into 5 different broader category: Lung (IcD9 code 491, 493, 518, 786), Infection (IcD9 code 38, 682), Neurology (IcD9 code 250.6, 434, 435), Heart (IcD9 code 410, 414, 427, 428) and Others.
+
+Same model are trained on the data set and the ANOVA test shows that all the variables are significant. 
+
 ```{r}
 type.lung <- c("491","493","518","786")
 type.infection <- c("38", "682")
@@ -331,8 +362,27 @@ data.train.new <- data.train %>%
 
 fit.new <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1new, family = "binomial", data = data.train.new)
 Anova(fit.new)
+```
+The summary suggested that patient with first diagnosis that is related to neurological disease has the highest chance to be readmitted within 30 days when controlling other parameters. The heart-related/other-related diagnosis ranked the second, followed by infections and lung-related ones.
+
+```{r}
 summary(fit.new)
 ```
+
+## Model Selection
+
+From above analysis, we purposed one model:
+
+
+$$\text{Readmitted} \sim   \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+Yet, three different preprocessing methods are used:
+- Without any binning
+- Binning ``diag1_mod`` into 3 categories (434, 786 and others)
+- Binning ``diag1_mod`` into 5 categories (Lung, Infection, Neurology, Heart and Others)
+
+To compare, testing data set is used and the ROC curves are shown below:
+
 ```{r}
 
 data.test.binned <- data.test %>% 
@@ -363,10 +413,18 @@ plot(1-fit.lasso.test.roc$specificities, fit.lasso.test.roc$sensitivities,
 lines(1-fit.reduced.test.roc$specificities, fit.reduced.test.roc$sensitivities, col="blue", lwd=3)
 lines(1-fit.new.test.roc$specificities, fit.new.test.roc$sensitivities, col="green", lwd=3)
 
-legend("bottomright", legend=c("fit.lasso.test", "fit.reduced.test", "fit.newtest"),
+legend("bottomright", legend=c("Without binning", "Binning into 3 categroies", "Binning into 5 categroies"),
        lty=c(1,1,1), lwd=c(2,2,2), col=c("red", "blue","green"))
 title("Comparison of two models using testing data")
 ```
+
+
+ROC curves suggest that all three preprocessing methods achieve almost the same results.
+
+# Final Models
+
+We choose the model without any binning as our final models. using the valiadtion data set, the true ROC curve is as following:
+
 
 ```{r}
 fit.lasso.val <- predict(fit.lasso, data.val, type="response")
@@ -379,11 +437,15 @@ plot(1-fit.lasso.val.roc$specificities, fit.lasso.val.roc$sensitivities,
 ```
 
 
-* Various appropriate statistical methods: e.g. glmnet 
-* Comparisons various models
-* Final model(s)
 
 iii) Conclusion
+
+
+we purposed one model but with three different preprocessing methods.
+We put great emphasize on the first diagnosis as we think it is very helpful and easy to be use in clinical settings - different specicalities in the wards shall use these receommdantions to predict their paitent outcome and readmitted rate
+
+
+
 
 * Summarize results and the final model
 * Final recommendations
