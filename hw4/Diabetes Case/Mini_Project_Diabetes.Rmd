@@ -173,9 +173,10 @@ A suggested outline of the report would include the following components:
 * Give a background of the study. You may check the original website or other sources to fill in some details, such as to why the questions we address here are important. 
   The goal of this study is to identify the important factors that may contribute to being readmitted to the hospital within 30 days of discharge. It is estimated that 9.3% of the population in the United States have diabetes mellitus, 28% of which are undiagnosed. By recognizing leading factors that contribute to readmission, healthcare workers can change the treatment in order to avoid a readmission, improving patients' outcomes. Knowing these will also help reduce the costs for the hospital, benefiting both the hospital and patients. 
 * A quick summary about the data.
-  This dataset comes from the Center for Clinical and Transnational Research (https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth that covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008.
+  This dataset comes from the Center for Clinical and Transnational Research (https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth that covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008. The age of the patients generally fall in the 20-59 or 60-79 category. There are more female (53.8%) than male (46.2%). Caucasion are the main type of race being admitted, making up of 76%. African American make up of 18.8% of the race being admitted. There appears to be way less Asian and Hispanic population being admitted. 
   
 * Methods used and the main findings.
+  To first find some core variables that could contribute to readmission within 30 days, we used a regularization technique call ed lasso regression to identify simple and sparse models. In the original lasso model, we found 8 key variables including time spent in hospital, number of inpatient visits and number of emergency visits by the patient in the year prior to the current encounter,  medications, total number of diagnosis entered for the patient, diabetes medication, where the patient was discharged to after treatment and primary diagnoses of the patient. About 11% of the full admission datasets were readmitted within 30 days, 35% of them were readmitted more than 30 days, and 54% were not readmitted. 
   
 
 * You may use clearly labelled and explained visualizations.
@@ -229,6 +230,7 @@ print(tmp)
 * Are there any problems with the data?
   The data overall has no major problems. Some demographic variables have missing values, race had 2273 entries that were "?". We had to remove these for the glm analysis.
 * Which variables are considered as input 
+	There are some important variables that we used in the following section with time spent in hospital, number of inpatient visits and number of emergency visits by the patient in the year prior to the current encounter,  medications, total number of diagnosis entered for the patient, diabetes medication, where the patient was discharged to after treatment and primary diagnoses of the patient.
 	
 ii) Analyses
 
@@ -273,6 +275,7 @@ fit.lasso <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+
 Anova(fit.lasso)
 summary(fit.lasso)
 ```
+
 ```{r}
 fit.lasso.coef<-coef(fit.lasso)
 fit.lasso.p <- summary(fit.lasso)
@@ -280,6 +283,7 @@ fit.lasso.coef<-sort(fit.lasso.coef[fit.lasso.p$coefficients[,4]<0.01])
 fit.lasso.coef
 names(fit.lasso.coef)
 ```
+
 ```{r Bestglm}
 Xy.design <- model.matrix(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod+0, data.train) 
 
@@ -298,6 +302,7 @@ saveRDS(fit.bestglm, "bestglm .RDS")
 fit.bestglm <- readRDS("bestglm .RDS")
 fit.bestglm$BestModels
 ```
+
 ```{r Bestglm Result}
 data.train.binned <- data.train %>% 
   mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
@@ -306,11 +311,13 @@ fit.reduced <- glm(readmitted ~ num_medications+number_emergency+number_inpatien
 Anova(fit.reduced)
 summary(fit.reduced)
 ```
+
 ```{r}
 
 type.lung <- c("491","493","518","786")
 type.infection <- c("38")
 ```
+
 ```{r}
 
 data.test.binned <- data.test %>% 
