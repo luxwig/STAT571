@@ -1,0 +1,476 @@
+
+
+---
+title: "Predicting readmission probability for diabetes inpatients"
+author: "Modern Data Mining"
+date: ' '
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  html_document:
+    code_folding: show
+    highlight: haddock
+    theme: lumen
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '4'
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+if(!require("pacman")) install.packages("pacman")
+pacman::p_load(pROC, dplyr, ggplot2, glmnet, car, data.table, gridExtra, bestglm, caret)   #add your packages here
+theme_set(theme_minimal())
+knitr::opts_chunk$set(echo = FALSE, fig.width = 7, fig.height = 6)
+set.seed(10)
+```
+
+
+
+
+# Instructions
+
+* This is a project. Well organized and well presented write-up is one major motivation here. Please see the section on `Write up` for details. 
+* There is no single correct answer.  
+* The entire write up should not be more than **5** pages. All the R-codes should be hidden. Any R-output used should be formatted neatly. You may put all supporting documents, graphics, or other exhibits into an Appendix, which is not counted in the 5 page limit.
+
+
+# Introduction
+
+## Background
+
+Diabetes is a chronic medical condition affecting millions of Americans, but if managed well, with good diet, exercise and medication, patients can lead relatively normal lives. However, if improperly managed, diabetes can lead to patients being continuously admitted and readmitted to hospitals. Readmissions are especially serious - they represent a failure of the health system to provide adequate support to the patient and are extremely costly to the system. As a result, the Centers for Medicare and Medicaid Services announced in 2012 that they would no longer reimburse hospitals for services rendered if a patient was readmitted with complications within 30 days of discharge.
+
+Given these policy changes, being able to identify and predict those patients most at risk for costly readmissions has become a pressing priority for hospital administrators. 
+
+## Goal of the study
+
+In this project, we shall explore how to use the techniques we have learned in order to help better manage diabetes patients who have been admitted to a hospital. Our goal is to avoid patients being readmitted within 30 days of discharge, which reduces costs for the hospital and improves outcomes for patients. If we could identify important factors relating to the chance of a patient being readmitted within 30 days of discharge, effective intervention could be done to reduce the chance of being readmitted. Also if we could predict one's chance being readmitted well, actions can be taken. 
+
+## The data
+
+The original data is from the [Center for Clinical and Translational Research](https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth University. It covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008. There are over 100,000 unique hospital admissions in this dataset, from ~70,000 unique patients. The data includes demographic elements, such as age, gender, and race, as well as clinical attributes such as tests conducted, emergency/inpatient visits, etc. Refer to the original documentation for more details on the dataset. Three former students Spencer Luster, Matthew Lesser and Mridul Ganesh, brought this data set into the class and did a wonderful final project. We will use a subset processed by the group but with a somewhat different objective.
+
+Data needed (see detailed information below): 
+
+- **`diabetic.data.csv`**
+- **`readmission.csv`**
+
+### Characteristics of the Data Set
+
+All observations have five things in common:
+
+1.	They are all hospital admissions
+2.	Each patient had some form of diabetes
+3.	The patient stayed for between 1 and 14 days.
+4.	The patient had laboratory tests performed on him/her.
+5.	The patient was given some form of medication during the visit.
+
+The data was collected during a ten-year period from 1999 to 2008. There are over 100,000 unique hospital admissions in the data set, with ~70,000 unique patients. 
+
+### Description of variables
+
+The dataset used covers ~50 different variables to describe every hospital diabetes admission. In this section we give an overview and brief description of the variables in this dataset.
+
+**1) Patient identifiers:** 
+
+a. `encounter_id`: unique identifier for each admission 
+b. `patient_nbr`: unique identifier for each patient 
+
+**2) Patient Demographics:** 
+
+`race`, `age`, `gender`, `weight` cover the basic demographic information associated with each patient. `Payer_code` is an additional variable that identifies which health insurance (Medicare /Medicaid / Commercial) the patient holds.
+
+**3) Admission and discharge details:** 
+
+a.	`admission_source_id` and `admission_type_id` identify who referred the patient to the hospital (e.g. physician vs. emergency dept.) and what type of admission this was (Emergency vs. Elective vs. Urgent). 
+b.	`discharge_disposition_id` indicates where the patient was discharged to after treatment.
+
+**4) Patient Medical History:**
+
+a.	`num_outpatient`: number of outpatient visits by the patient in the year prior to the current encounter
+b.	`num_inpatient`: number of inpatient visits by the patient in the year prior to the current encounter
+c.	`num_emergency`: number of emergency visits by the patient in the year prior to the current encounter
+
+**5)	Patient admission details:**
+
+a.	`medical_specialty`: the specialty of the physician admitting the patient
+b.	`diag_1`, `diag_2`, `diag_3`: ICD9 codes for the primary, secondary and tertiary diagnoses of the patient.  ICD9 are the universal codes that all physicians use to record diagnoses. There are various easy to use tools to lock up what individual codes mean (Wikipedia is pretty decent on its own)
+c.	`time_in_hospital`: the patient’s length of stay in the hospital (in days)
+d.	`number_diagnoses`: Total no. of diagnosis entered for the patient
+e.	`num_lab_procedures`: No. of lab procedures performed in the current encounter
+f.	`num_procedures`: No. of non-lab procedures performed in the current encounter
+g.	`num_medications`: No. of distinct medications prescribed in the current encounter
+
+**6)	Clinical Results:**
+
+a.	`max_glu_serum`: indicates results of the glucose serum test
+b.	`A1Cresult`: indicates results of the A1c test
+
+**7)	Medication Details:**
+
+a.	`diabetesMed`: indicates if any diabetes medication was prescribed 
+b.	`change`: indicates if there was a change in diabetes medication
+c.	`24 medication variables`: indicate whether the dosage of the medicines was changed in any manner during the encounter
+
+**8)	Readmission indicator:** 
+
+Indicates whether a patient was readmitted after a particular admission. There are 3 levels for this variable: "NO" = no readmission, "< 30" = readmission within 30 days and "> 30" = readmission after more than 30 days. The 30 day distinction is of practical importance to hospitals because federal regulations penalize hospitals for an excessive proportion of such readmissions.
+
+To save your time we are going to use some data sets cleaned by the group. Thus, we provide two datasets:
+
+**`diabetic.data.csv`** is the original data. You may use it for the purpose of summary if you wish. You will see that the original data can’t be used directly for your analysis, yet. 
+
+**`readmission.csv`** is a cleaned version and they are modified in the following ways:
+
+1) `Payer code`, `weight` and `Medical Specialty` are not included since they have a large number of missing values. 
+
+2) Variables such as `acetohexamide`, `glimepiride.pioglitazone`, `metformin.rosiglitazone`, `metformin.pioglitazone` have little variability, and are as such excluded. This also includes the following variables: `chlorpropamide`, `acetohexamide`, `tolbutamide`, `acarbose`, `miglitor`, `troglitazone`, `tolazamide`, `examide`, `citoglipton`, `glyburide.metformin`, `glipizide.metformin`, and `glimepiride.pioglitazone`.
+
+3) Some categorical variables have been regrouped. For example, `Diag1_mod` keeps some original levels with large number of patients and aggregates other patients as `others`. This process is known as 'binning.'
+		
+4) The event of interest is **readmitted within < 30 days**. Note that you need to create this response first by regrouping **Readmission indicator**!
+
+# Research approach
+
+From the *Goals* section above, your study should respond to the following:
+
+## Analyses suggested
+
+1) Identify important factors that capture the chance of a readmission within 30 days. 
+
+The set of available predictors is not limited to the raw variables in the data set. You may engineer any factors using the data, that you think will improve your model's quality.
+
+2) For the purpose of classification, propose a model that can be used to predict whether a patient will be a readmit within 30 days. Justify your choice. Hint: use a decision criterion, such as AUC, to choose among a few candidate models.
+
+3) Based on a quick and somewhat arbitrary guess, we estimate **it costs twice as much** to mislabel a readmission than it does to mislabel a non-readmission. Based on this risk ratio, propose a specific classification rule to minimize the cost. If you find any information that could provide a better cost estimate, please justify it in your write-up and use the better estimate in your answer.
+
+Suggestion: You may use any of the methods covered so far in parts 1) and 2), and they need not be the same. Also keep in mind that a training/testing data split may be necessary. 
+
+4) We suggest you to split the data first to Training/Testing/Validation data:
+
+- Use training/testing data to land a final model (If you only use LASSO to land a final model, we will not need testing data since all the decisions are made with cross-validations.)
+
+- Evaluate the final model with the validation data to give an honest assessment of your final model. 
+
+# The write up
+
+As you all know, it is very important to present your findings well. To achieve the best possible results you need to understand your audience. 
+
+Your target audience is a manager within the hospital organization. They hold an MBA, are familiar with medical terminology (though you do not need any previous medical knowledge), and have gone through a similar course to our Modern Data Mining with someone like your professor. You can assume thus some level of technical familiarity, but should not let the paper be bogged down with code or other difficult to understand output.
+
+Note then that the most important elements of your report are the clarity of your analysis and the quality of your proposals. 
+
+A suggested outline of the report would include the following components: 
+
+1) Executive Summary
+
+  The data comes from Center for Clinical and Translational Research(https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth University. It covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008. There are over 100,000 unique hospital admissions in this dataset, from about 70,000
+unique patients. 
+  It is estimated that 9.3% of the population in the United States have diabetes mellitus (DM), 28% of which are undiagnosed. The high prevalence of DM makes it a common comorbid condition in hospitalized patients. Thirty-day readmission rates for hospitalized patients with DM are reported to be between 14.4 and 22.7%, much higher than the rate for all hospitalized patients (8.5–13.5%). The purpose of this project is to find important predictors of readmission of diabetes within 30 days. This could help inform what type of patients are more likely to be readmissioned in the future as well as lower the work load of the hospital.
+  Taking a close look at the dataset itself, there are more female than male in general. 53.8% of them are female and 46.2% of them are male. The majority of the patients fall in the age group pof 20 - 59 and 60 - 79. 31.8% of them are between 20-59 yeas old, 47.7% of them are between 60-79 years old. The majority of the patients are Caucasian, 74.8%. Out of the total records within 10 years, 11.2% of them were readmissioned within 30 days.
+  We used three different methods. We first used lasso regression, a method used over regression methods for a more accurate prediction. This model uses shrinkage and shrinkage is where data values are shrunk towards a central point as the mean. The lasso procedure encourages simple, sparse models (i.e. models with fewer parameters). Therefore, using lasso would help cut down the number of predictors this dataset has to a well-fit model. With the lasso regularization, there are 7 key predictors that are statistically significant:  
+  
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+  - Number of distinct medications prescribed in the current encounter (num_medications) 
+  - number of emergency visits by the patient in the year prior to the current encounter(number_emergency)
+  - number of inpatient visits by the patient in the year prior to the current encounter(number_inpatient)
+  - Total no. of diagnosis entered for the patient(number_diagnoses)
+  - if any diabetes medication was prescribed (diabetesMed)
+  - where the patient was discharged to after treatment (disch_disp_modified)
+  - primary diagnose of the patient (diag1_mod)
+  
+  In our second approach, we used an AIC-based model reduction to identify most important variables that predict readmission within 30 days with the lowest prediction error. The idea is to find a likelihood function that best explain the observed data. We remodeled the variable ``diag1_mod`` into 3 different categories based on the finding that only 2 of 24 levels (434 and 786) are non-zero for ``diag1_mod``. Therefore, the variable ``diag1_mod`` is reordered into 3 levels: 434, 786 and others. Based on the lowest AIC, the same model is proposed to be the best functioning model. 
+
+  In our third approach, ``diag1_mod`` are binned into 5 different broader category: Lung (IcD9 code 491, 493, 518, 786), Infection (IcD9 code 38, 682), Neurology (IcD9 code 250.6, 434, 435), Heart (IcD9 code 410, 414, 427, 428) and Others. The same model is proposed to be the best functioning model. 
+  
+To that patient with first diagnosis that is related to neurological disease has the highest chance to be readmitted within 30 days when controlling other parameters. The heart-related/other-related diagnosis ranked the second, followed by infections and lung-related ones.
+
+To finalize which model with different ``diag1_mod`` categorization is the best, we split the data into three sub-samples
+  1. Training Data: fit a model
+  2. Testing Data: compare models to find a best one
+  3. Validation Data: to evaluate the final model
+
+  With all three models, the ROC curve was used to determine which model is the best fit. ROC curve plots true positive rate ( the proportion of correct positive classification) and false positive rate (the proportion of correct negative classification), meaning that we want the model to assign a person's being readmissioned within 30 days or not as accurate as possible with this model. The three models showed similar ROC, the final model is:
+
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+  There are several limitations to this approach. First, the dataset itself has limitations. Within demographic variables, race is not inclusive enough of different race and ethnicity. Age is also a categorical variable with very large age gaps (~20 years). These bias in demographic variables could lead to a biased conclusion. Second, as statisticians we are not familiar with the background of diabetes and factors that could lead to readmission within 30 days. We also lack the background knowledge in 
+
+
+2) Detailed process of the analysis
+
+i) Data Summary /EDA
+
+
+```{r EDA}
+dia <- read.csv("readmission.csv") %>% 
+  select(c(-encounter_id,-patient_nbr)) %>%
+  mutate(race = ifelse(race=="?",NA,race)) %>% 
+  filter(gender != "Unknown/Invalid") 
+
+p1 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=gender)) +
+  ggtitle("Demographics Distribution") + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Gender"))
+
+p2 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=race)) + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Race"))
+
+p3 <- ggplot(data = dia, aes(x = readmitted)) +
+  geom_bar(position = position_dodge(), aes(fill=age_mod)) + 
+  xlab("Readmission Level") + 
+  guides(fill = guide_legend("Age Group"))
+
+grid.arrange(p1,p2,p3, nrow=3)
+
+for (i in c("age_mod", "gender", "race", "readmitted")) {
+tmp <- dia %>% 
+    group_by(!!sym(i)) %>%
+    summarise(cnt = n()) %>%
+    mutate(ratio = cnt/sum(cnt))
+print(tmp)
+}
+
+```
+* Nature of the data, origin
+  The data comes from Center for Clinical and Translational Research(https://archive.ics.uci.edu/ml/datasets/Diabetes+130-US+hospitals+for+years+1999-2008) at Virginia Commonwealth University. It covers data on diabetes patients across 130 U.S. hospitals from 1999 to 2008. There are over 100,000 unique hospital admissions in this dataset, from about 70,000 unique patients. 
+ 
+* Necessary quantitative and graphical summaries
+  From the over 100,000 unique hospital admissions, Gender wise, 53.8% of them are female and 46.2% of them are male. Age wise, 0.8% of them are between 0-19 years old, 31.8% of them are between 20-59 yeas old, 47.7% of them are between 60-79 years old, 19.6% of them are over 80 years old. Race wise, 18.9% are African American, 0.6% are Asian, 74.8% are Caucasian, 2% are Hispanic, 1.5% are Other and 2.2% are unknown. Looking at readmission level, 11.2% of them were readmissioned within 30 days, 34.9% were readmissioned more than 30 days, 53.9% of them were not readmissioned. 
+  The graphical summary of demographic distribution shows number of entries for gender, race, and age group divided by the readmission level. We can see that gender shows relatively the same pattern among those with different readmission level, relatively more female than male. Race also shows similar pattern among those with different readmission level, overall caucasion are the main admission patients. Looking at age, those who are between 60-79 are the highest number compare to other age groups, the second highest are those between 20-59, the third highest are those over 80 years old.  
+  The race category is not inclusive enough of different race and ethnicity. 1505 entries are other and 2271 entries are NA, leaving us to delete the NA entries where race is not included.
+	
+# Analyses
+
+The data set is first divided into 3 sets for training (40%), testing (20%) and validation (20%). 
+All the models use logistic regression estimated by maximum likelihood estimation. 
+
+## Regularization
+
+Data regularization is first performed through elastic net via ``glmnet``.
+The ``alpha`` is set to 0.99 to increase the stability of the algorithm.
+The optimal $\lambda = 0.005618101$ is selected using cross validation.
+
+```{r}
+dia.cleaned <- dia %>%
+  filter(!is.na(race)) %>%
+  mutate(readmitted = ifelse(readmitted == "<30", TRUE, FALSE))
+
+N = length(dia.cleaned$readmitted)
+n1 = floor(.6*N)
+n2 = floor(.2*N)
+
+idx_train <- sample(N, n1)
+idx_no_train <- (which(! seq(1:N) %in% idx_train))
+idx_test <- sample( idx_no_train, n2)
+idx_val <- which(! idx_no_train %in% idx_test)
+data.train <- dia.cleaned[idx_train,]
+data.test <- dia.cleaned[idx_test,]
+data.val <- dia.cleaned[idx_val,]
+```
+
+```{r LASSO}
+dia.x <- model.matrix(readmitted~., data=data.train)[, -1]
+dia.y <- as.matrix(data.train$readmitted)
+
+#fit.cv <- cv.glmnet(x = dia.x, y = dia.y, alpha=0.99, family="binomial", nfolds = 10, type.measure = "deviance")  
+#saveRDS(fit.cv, "fit.RDS")
+fit.cv <- readRDS("fit.RDS")
+plot(fit.cv)
+coef.1se <- coef(fit.cv, s="lambda.1se")  
+coef.1se <- coef.1se[which(coef.1se !=0),] 
+```
+The sparse model after regularization uses following predictors:
+
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+AVNOA is performed to examine the statistical significance of each variable as shown below:
+
+```{r LASSO Results}
+fit.lasso <- glm(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = data.train, family=binomial)
+Anova(fit.lasso)
+```
+
+As suggested, ``time_in_hospital`` is not significant and therefore is removed. 
+After adjusted the model to the following,
+
+$$\text{Readmitted} \sim \text{time_in_hospital} + \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+all variables are significant as shown below:
+
+```{r}
+fit.lasso <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, data = dia.cleaned, family=binomial)
+Anova(fit.lasso)
+```
+
+## AIC-based Model Reduction 
+
+For model reduction based on AIC, ``bestglm`` is used to. One major drawback is that ``bestglm`` can only take 15 variables while the module from regularization 
+as some categorical variables have multiple levels. From ``glmnet`` output with the optimal $\lamdba$$ , it is indicated that only 2 of 24 levels (434 and 786) are non-zero for ``diag1_mod``. Therefore, the variable ``diag1_mod`` is binned into 3 levels: 434, 786 and others.
+
+Based on ``bestglm`` results, the model is as following:
+
+
+$$\text{Readmitted} \sim   \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+```{r Bestglm}
+Xy.design <- model.matrix(readmitted ~ time_in_hospital+num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod+0, data.train) 
+
+cindx = colnames(Xy.design)
+cindx = cindx[c(1:10,18,30,33)]
+
+cindx<-lapply(cindx,sym)
+Xy.design <- data.frame(Xy.design)
+Xy.design <- Xy.design %>%
+  mutate(diag1_modOther = ifelse(diag1_mod434==0 & diag1_mod786==0, 1, 0)) %>%
+  select(c(1:10,18,30,33))
+Xy <-  data.frame(Xy.design, data.train$readmitted)   
+
+#fit.bestglm <- bestglm(Xy, family = binomial, method = "backward", IC="AIC", nvmax = 10) 
+#saveRDS(fit.bestglm, "bestglm .RDS")
+fit.bestglm <- readRDS("bestglm.RDS")
+#fit.bestglm$BestModels
+```
+
+The ANOVA tests shows that all variables are statically significant.
+
+```{r Bestglm Result}
+data.train.binned <- data.train %>% 
+  mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
+
+fit.reduced <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1_mod, family = "binomial", data =  data.train.binned)
+# Anova(fit.reduced)
+summary(fit.reduced)
+```
+
+
+## Other Alternative Models
+
+By visually examine the coefficients and their $p$-values of the model after regularization,
+```{r}
+fit.lasso.coef<-coef(fit.lasso)
+fit.lasso.p <- summary(fit.lasso)
+fit.lasso.coef<-sort(fit.lasso.coef[fit.lasso.p$coefficients[,4]<0.01])
+#fit.lasso.coef
+#names(fit.lasso.coef)
+summary(fit.lasso)
+```
+some levels of ``diag1_mod`` are significant while others are not. What is more interesting is that, diagnosis within the same boarder category (such as diagnosis related to heart, lung, nerves and infection) tends to have similar coefficients. 
+
+Therefore, ``diag1_mod`` are binned into 5 different broader category: Lung (IcD9 code 491, 493, 518, 786), Infection (IcD9 code 38, 682), Neurology (IcD9 code 250.6, 434, 435), Heart (IcD9 code 410, 414, 427, 428) and Others.
+
+Same model are trained on the data set and the ANOVA test shows that all the variables are significant. 
+
+```{r}
+type.lung <- c("491","493","518","786")
+type.infection <- c("38", "682")
+type.neuro <- c("250.6", "434", "435")
+type.heart <- c("410", "414", "427", "428")
+data.train.new <- data.train %>%
+  mutate(diag1new = case_when(
+      is.element(diag1_mod,type.lung) ~ "Lung", 
+      is.element(diag1_mod,type.infection) ~ "Infection",
+      is.element(diag1_mod,type.neuro) ~ "Neuro",
+      is.element(diag1_mod,type.heart) ~ "Heart",
+      TRUE ~ "Other"
+    )
+  )
+
+
+fit.new <- glm(readmitted ~ num_medications+number_emergency+number_inpatient+number_diagnoses+diabetesMed+disch_disp_modified+diag1new, family = "binomial", data = data.train.new)
+Anova(fit.new)
+```
+The summary suggested that patient with first diagnosis that is related to neurological disease has the highest chance to be readmitted within 30 days when controlling other parameters. The heart-related/other-related diagnosis ranked the second, followed by infections and lung-related ones.
+
+```{r}
+summary(fit.new)
+```
+
+## Model Selection
+
+From above analysis, we propose one model:
+
+
+$$\text{Readmitted} \sim   \text{num_medications} + \text{number_emergency} + \text{number_inpatient} + \text{number_diagnoses} + \text{diabetesMed} + \text{disch_disp_modified} + \text{diag1_mod}$$
+
+Yet, three different preprocessing methods are used:
+- Without any binning
+- Binning ``diag1_mod`` into 3 categories (434, 786 and others)
+- Binning ``diag1_mod`` into 5 categories (Lung, Infection, Neurology, Heart and Others)
+
+To compare, testing data set is used and the ROC curves are shown below:
+
+```{r}
+
+data.test.binned <- data.test %>% 
+  mutate(diag1_mod = ifelse(diag1_mod=="434" | diag1_mod=="786", diag1_mod, 1))
+
+data.test.new.binned <- data.test  %>%
+  mutate(diag1new = case_when(
+      is.element(diag1_mod,type.lung) ~ "Lung", 
+      is.element(diag1_mod,type.infection) ~ "Infection",
+      is.element(diag1_mod,type.neuro) ~ "Neuro",
+      is.element(diag1_mod,type.heart) ~ "Heart",
+      TRUE ~ "Other"
+    )
+  )
+
+fit.lasso.test <- predict(fit.lasso, data.test, type="response")
+fit.reduced.test <- predict(fit.reduced, data.test.binned, type="response")
+fit.new.test <- predict(fit.new, data.test.new.binned, type="response")
+
+fit.lasso.test.roc <- roc(data.test$readmitted, fit.lasso.test)
+fit.reduced.test.roc <- roc(data.test$readmitted, fit.reduced.test)
+fit.new.test.roc <- roc(data.test$readmitted, fit.new.test)
+
+plot(1-fit.lasso.test.roc$specificities, fit.lasso.test.roc$sensitivities, 
+     col="red", type="l", lwd=3,
+     xlab = "False Positive",
+     ylab="Sensitivities")
+lines(1-fit.reduced.test.roc$specificities, fit.reduced.test.roc$sensitivities, col="blue", lwd=3)
+lines(1-fit.new.test.roc$specificities, fit.new.test.roc$sensitivities, col="green", lwd=3)
+
+legend("bottomright", legend=c("Without binning", "Binning into 3 categroies", "Binning into 5 categroies"),
+       lty=c(1,1,1), lwd=c(2,2,2), col=c("red", "blue","green"))
+title("Comparison of two models using testing data")
+```
+
+
+ROC curves suggest that all three preprocessing methods achieve almost the same results.
+
+# Final Models
+
+We choose the model without any binning as our final models. using the validation data set, the true ROC curve is as following:
+
+
+```{r}
+fit.lasso.val <- predict(fit.lasso, data.val, type="response")
+fit.lasso.val.roc <- roc(data.val$readmitted, fit.lasso.val)
+plot(1-fit.lasso.val.roc$specificities, fit.lasso.val.roc$sensitivities, 
+     col="red", type="l", lwd=3, 
+     xlab=paste("AUC(fit.lasso.val.roc) =",
+                round(pROC::auc(fit.lasso.val.roc),2)), 
+     ylab="Sensitivities")
+```
+
+iii) Conclusion
+
+We purposed one model but with three different preprocessing methods.
+We put great emphasize on the first diagnosis as we think it is very helpful and easy to be use in clinical settings - different specialties in the wards shall use these receommdantions to predict their paitent outcome and readmitted rate
+
+
+Maintain a good descriptive flow in the text of your report. Use Appendices to display lengthy output.
+
+
+<!-- # Collaboration -->
+
+<!-- This is an **individual** assignment. We will only allow private Piazza posts for questions. If there are questions that are generally useful, we will release that information. -->
+

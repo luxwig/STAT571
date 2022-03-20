@@ -33,6 +33,7 @@ if(!require('pacman')) {install.packages('pacman')}
 pacman::p_load(ISLR, readxl, magrittr, dplyr, ggplot2,car) # add the packages needed
 if(!require('leaps')) {install.packages('leaps')}
 library('leaps')
+set.seed(0)
 ```
 
 
