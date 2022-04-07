@@ -1,0 +1,5 @@
+*.*
+!*.Rmd
+!*.Rproj
+!.gitignore
+!fit.RDS
