@@ -25,7 +25,7 @@ urlcolor: blue
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height=4, fig.width=6, warning = F)
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger)
+pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, lubridate,tm, SnowballC,RColorBrewer, wordcloud)
 ```
 
 
@@ -304,52 +304,275 @@ str(yelp_data)
 # tmp_json <- toJSON(yelp_data[1:10,])
 # fromJSON(tmp_json)
 ```
+```{r}
+data <- yelp_data[1:1000, ] # Take a small set to work through
+        # MAKE SURE: you will rerun the analyses later by
+        # setting back a larger dataset.
+names(data)
+str(data)   
+#length(unique(data$user_id)) #someone wrote more than one revews
+#length(unique(data$review_id)) # unique one for each review
+n <- nrow(data)
+levels(as.factor(data$stars))
+```
 
 **Write a brief summary about the data:**
 
 a) Which time period were the reviews collected in this data?
+From 2004 to 2018
+```{r}
+sort(isoyear(yelp_data$date))[1]
+sort(isoyear(yelp_data$date))[19999]
+```
+
 
 b) Are ratings (with 5 levels) related to month of the year or days of the week? Only address this through EDA please. 
+it looks like reviews are left evenly distributed throughout days of week and month, with May and August a little more than other months. Couldn't notice any pattern of proportion of good or bad reviews.
+```{r}
+weekdays <- weekdays(as.Date(yelp_data$date)) 
+months <- months(as.Date(yelp_data$date))
 
+par(mfrow=c(1,2))
+pie(table(weekdays), main="Prop of reviews") 
+pie(table(months))
+
+prop.table(table(yelp_data$stars, weekdays), 2)
+prop.table(table(yelp_data$stars, weekdays), 1)
+```
 
 ii. Document term matrix (dtm)
  
  Extract document term matrix for texts to keep words appearing at least .5% of the time among all 20000 documents. Go through the similar process of cleansing as we did in the lecture. 
 
 a) Briefly explain what does this matrix record? What is the cell number at row 100 and column 405? What does it represent?
+This matrix record words appearing at least 0.5% of the time with 1461 words as predictors Each rowindicates each document and each column indicates the appearing frequency of the word from each document.
+The cell number at row 100 and column 405 is 0, it means that at Doc 100 the word "aid" appears freqneuncy is 0
+```{r}
+mycorpus1 <- VCorpus(VectorSource(yelp_data$text))
+mycorpus1
+typeof(mycorpus1)   ## It is a list
+# inspect the first corpus
+inspect(mycorpus1[[1]])
+# or use `as.character` to extract the text
+as.character(mycorpus1[[1]])
 
+# Converts all words to lowercase
+mycorpus_clean <- tm_map(mycorpus1, content_transformer(tolower))
+
+# Removes common English stopwords (e.g. "with", "i")
+mycorpus_clean <- tm_map(mycorpus_clean, removeWords, stopwords("english"))
+# Removes punctuation
+mycorpus_clean <- tm_map(mycorpus_clean, removePunctuation)
+
+# Removes numbers
+mycorpus_clean <- tm_map(mycorpus_clean, removeNumbers)
+
+# Stem words
+mycorpus_clean <- tm_map(mycorpus_clean, stemDocument, lazy = TRUE)   
+
+lapply(mycorpus_clean[4:5], as.character)
+
+dtm1 <- DocumentTermMatrix( mycorpus_clean )   ## library = collection of words for all documents
+class(dtm1)
+
+#Reduce the size of the bag
+threshold <- .005*length(mycorpus_clean)   # 1% of the total documents 
+words.05 <- findFreqTerms(dtm1, lowfreq=threshold)  # words appearing at least among 1% of the documents
+length(words.05)
+
+dtm.05<- DocumentTermMatrix(mycorpus_clean, control = list(dictionary = words.05))  
+dim(as.matrix(dtm.05))
+inspect(dtm1[100,405])
+inspect(dtm.05)
+
+```
 b) What is the sparsity of the dtm obtained here? What does that mean?
+The sparsity of the dtm is 98%, it means that the proportion of sparse entriess in the entire matrix is 98%
 
 iii. Set the stars as a two category response variable called rating to be “1” = 5,4 and “0”= 1,2,3. Combine the variable rating with the dtm as a data frame called data2. 
+```{r}
+yelp_data$rating <- c(0)
+yelp_data$rating[yelp_data$stars >= 4] <- 1
+yelp_data$rating <- as.factor(yelp_data$rating)
+
+# Combine the original data with the text matrix
+data1.temp <- data.frame(yelp_data,as.matrix(dtm.05))   
+dim(data1.temp)
+names(data1.temp)[1:30]
+# data2 consists of date, rating and all the top 1% words
+data2 <- data1.temp[, 8:ncol(data1.temp)]
+dim(data2)  ### remember we have only run 1000 rows
+```
 
 ## Analysis
 
 Get a training data with 13000 reviews and the 5000 reserved as the testing data. Keep the rest (2000) as our validation data set. 
+```{r split data}
+set.seed(1)
+n <- nrow(data2)
+test.index <- sample(n,13000)
+data2.test <- data2[test.index, -c(1:2)] # only keep rating and the texts
+data2.train <- data2[-test.index, -c(1:2)]
+dim(data2.train)
 
+```
 ## 2. LASSO
 
 i. Use the training data to get Lasso fit. Choose lambda.1se. Keep the result here.
+```{r lasso}
+y <- data2.train$rating
+x1 <- sparse.model.matrix(rating~., data = data2.train)[,-1]
+set.seed(2)
+result.lasso <- cv.glmnet(x1, y, alpha = .99, family = "binomial")
+#save lasso result to RDS
+saveRDS(result.lasso, file="data/yelp_lasso.RDS")
 
+# number of non-zero words picked up by LASSO when using lambda.1se
+coef.1se <- coef(result.lasso, s="lambda.1se")
+lasso.words <- coef.1se@Dimnames[[1]] [coef.1se@i][-1] # non-zero variables without intercept. 
+summary(lasso.words)
+
+plot(result.lasso)
+```
 ii. Feed the output from Lasso above, get a logistic regression. 
-	
+```{r logistic}
+sel_cols <- c("rating", lasso.words)
+# use all_of() to specify we would like to select variables in sel_cols
+data_sub <- data2.train %>% select(all_of(sel_cols))
+result.glm <- glm(rating~., family=binomial, data_sub) # takes 3.5 minutes
+## glm() returns a big object with unnecessary information
+# saveRDS(result.glm, 
+#      file = "data/TextMining_glm.RDS")
+
+stripGlmLR = function(cm) {
+  cm$y = c()
+  cm$model = c()
+  
+  cm$residuals = c()
+  cm$fitted.values = c()
+  cm$effects = c()
+  cm$qr$qr = c()  
+  cm$linear.predictors = c()
+  cm$weights = c()
+  cm$prior.weights = c()
+  cm$data = c()
+
+  
+  cm$family$variance = c()
+  cm$family$dev.resids = c()
+  cm$family$aic = c()
+  cm$family$validmu = c()
+  cm$family$simulate = c()
+  attr(cm$terms,".Environment") = c()
+  attr(cm$formula,".Environment") = c()
+  
+  cm
+}
+
+result.glm.small <- stripGlmLR(result.glm)
+
+saveRDS(result.glm.small, 
+     file = "data/yelp_glm_small.RDS")
+```
 a) Pull out all the positive coefficients and the corresponding words. Rank the coefficients in a decreasing order. Report the leading 2 words and the coefficients. Describe briefly the interpretation for those two coefficients. 
+```{r}
+result.glm <- readRDS("data/yelp_glm_small.RDS")
+result.glm.coef <- coef(result.glm)
+sort(result.glm.coef, decreasing = T)[1:2]
+
+```
+The leading 2 words are refresh with coefficient of 3.93 and gem with coefficient of 2.78. There are the two words that are most likely positively related to the probability of being a good review.
 
 b) Make a word cloud with the top 100 positive words according to their coefficients. Interpret the cloud briefly.
+```{r}
+# pick up the positive coef's which are positively related to the prob of being a good review
+good.glm <- result.glm.coef[which(result.glm.coef > 0)]
+good.glm <- good.glm[-1]  # took intercept out
+names(good.glm)[1:20]  # which words are positively associated with good ratings
+
+good.fre <- sort(good.glm, decreasing = TRUE) # sort the coef's
+round(good.fre, 4)[1:20] # leading 20 positive words, amazing!
+length(good.fre)  # 192
+
+hist(as.matrix(good.fre), breaks=30, col="red")
+good.word <- names(good.fre)  # good words with a decreasing order in the coeff's
+
+cor.special <- brewer.pal(8,"Dark2")  # set up a pretty color scheme
+#wordcloud(good.word[1:100], good.fre[1:100],  # make a word cloud
+          #colors=cor.special, ordered.colors=F)
+
+```
 
 c) Repeat i) and ii) for the bag of negative words.
+```{r}
+bad.glm <- result.glm.coef[which(result.glm.coef < 0)]
+names(bad.glm)[1:50]
+
+cor.special <- brewer.pal(6,"Dark2")
+bad.fre <- sort(-bad.glm, decreasing = TRUE)
+round(bad.fre, 4)[1:40]
+
+hist(as.matrix(bad.fre), breaks=30, col="green")
+bad.word <- names(bad.fre)
+#wordcloud(bad.word[1:300], bad.fre[1:300], 
+         # color=cor.special, ordered.colors=F)
+
+```
 
 d) Summarize the findings. 
+In summary, some of the most heavy weight good words are refresh, gem, thorough, delight, phenomen,interact, various,awesom, cozi. Some of the most heavy weight bad words are disgust, rude, ignor, overcook, uncomfort    overpr, ridicul, dirti, wors, burn. Both top good and bad words have words that are trimmed, such as "phenomen" or "ignore", showing that some words got trimmed through stemming.
 
 iii. Using majority votes find the testing errors
 	i) From Lasso fit in 3)
 	ii) From logistic regression in 4)
 	iii) Which one is smaller?
+	
+glm ROC is 0.8238, smaller than lasso ROC 0.9253
+	
+```{r testing error}
+#Firest testing error of the lasso fit
+predict.lasso.p <- predict(result.lasso, as.matrix(data2.test[, -1]), type = "response",
+                           s = "lambda.1se") #lasso estimate of probabilities
+predict.lasso <- predict(result.lasso, as.matrix(data2.test[, -1]), type = "class",
+                         s = "lambda.1se") #output majority vote labels
+#LASSO testing errors
+mean(data2.test$rating != predict.lasso) #0.143
+#get ROC curve
+pROC::roc(data2.test$rating, predict.lasso.p, plot = TRUE)
+
+#Second testing error of glm fit
+predict.glm <- predict(result.glm, data2.test, type = "response")
+class.glm <- ifelse(predict.glm > 0.5, "1", "0")
+testerror.glm <- mean(data2.test$rating != class.glm)
+testerror.glm
+#get ROC cirve
+pROC::roc(data2.test$rating, predict.glm, plot = TRUE)
+```
 
 ## 3. Random Forest  
 
 i. Briefly summarize the method of Random Forest
+Random forest is a method that builds decision trees on different samples and takes their majority vote for classification. It operates by first taking n number of random records from the dataset and then uses bootstrapping aggregating technique. This way each group of data set is trained independently to a model, amd the final output of the random forest takes the majority vote after combining results of all models.
 
 ii. Now train the data using the training data set by RF. Get the testing error of majority vote. Also explain how you tune the tuning parameters (`mtry` and `ntree`). 
+
+I first decided on 100 trees and from the OOB mis-classification errors line, we see that 40 trees are large enough for the training dataset.
+```{r random forest}
+fit.rf.train <- randomForest(rating~., data2.train, ntree=100)
+plot(fit.rf.train)
+fit.rf.train$err.rate[50, 1] #  OOB mis-classification error with 1/2 as the threshold.
+fit.rf.train$err.rate[100, 1] # 
+names(fit.rf.train)
+fit.rf.train$mtry   # default  p= dim(data2.train)[2]; mtry=sqrt(p)
+fit.rf.train$votes[1: 100] # OOB prob
+fit.rf.train$predicted[1:100] # majority vote
+fit.rf.train$confusion # gives us the confusion matrix for the last forest!
+
+predict.rf <- predict(fit.rf.train, newdata=data2.test)  # output the classes by majority vote using all the trees evaluated with testing data
+mean(data2.test$rating != predict.rf) 
+#MCE is .156 which is closed to OOB error of .0.166
+
+```
 
 ## 4. Boosting 
 
@@ -359,20 +582,101 @@ To be determined.
 ## 5.  PCA first
 
 i. Perform PCA (better to do sparse PCA) for the input matrix first. Decide how many PC's you may want to take and why.
+I want to take 10 PCs 
+```{r}
+set.seed(10)
+data1 <- data2[sample(1:nrow(data2), 2000), ]
+data1 <- data1[, -c(1:2)]  # we keep only rating and the dtm
+data1$rating <- as.factor(data1$rating)  # make sure rating is coded as a factor
+levels(data1$rating)
+
+# Get train/test data 
+
+set.seed(1)
+n=nrow(data1)
+test.index <- sample(n, 0.3*n)
+length(test.index)
+data2.test <- data1[test.index, ] # only keep rating and the texts
+data2.train <- data1[-test.index, ]
+names(data2.train)[1:3]
+dim(data2.train)
+
+# Get pc's for training data
+
+pc.train <- prcomp(data2.train[, -c(1)], scale=TRUE)  # Take the rating out
+
+pc.train$center[1:50] # means for each word
+hist(pc.train$center, breaks=50,
+     col="blue",
+     main="mean frequency of the words")  
+
+# How do PC's capture the variabilities of the entire dtm?
+
+pc.train.imp <- t((summary(pc.train))$importance)   # this is a matrix
+pc.train.imp <- as.data.frame(pc.train.imp) 
+names(pc.train.imp) <- c("Sdev", "PVE", "CPVE")
+attach(pc.train.imp)
+par(mfrow=c(3,1))
+hist(Sdev)
+plot(PVE, xlim=c(1, 50))
+plot(CPVE, main="Scree plot of CPVE")
+detach(pc.train.imp)
+
+# Extract PC scores
+pc.train.scores <- pc.train$x    # This contains all the pc scores for the original dtm
+dim(pc.train.scores)          # right
+
+pc.test.scores <- predict(pc.train, data2.test[, -c(1)])   # get pc scores for testing data
+dim(pc.test.scores)
+
+plot(summary(pc.train)$importance[2, 1:200],  # PVE
+     )
+summary(pc.train)$importance[2,1:20]
+```
 
 ii. Pick up one of your favorate method above and build the predictive model with PC's. Say you use RandomForest.
 
-iii. What is the testing error? Is this testing error better than that obtained using the original x's? 
+```{r}
+pc.train.sub <- data.frame(pc.train.scores[,1:10])
+pc.train.sub$rating = data2.train$rating
+pc.train.sub$rating = as.factor(pc.train.sub$rating)
+pc.test.sub <- pc.test.scores[,1:10]
 
+fit.rf.train2 <- randomForest(rating~., pc.train.sub, ntree=100)
+plot(fit.rf.train2)
+fit.rf.train2$err.rate[50, 1] #  OOB mis-classification error with 1/2 as the threshold.
+fit.rf.train2$err.rate[100, 1] # 
+names(fit.rf.train2)
+fit.rf.train2$mtry   # default  p= dim(data2.train)[2]; mtry=sqrt(p)
+fit.rf.train2$votes[1: 100] # OOB prob
+fit.rf.train2$predicted[1:100] # majority vote
+fit.rf.train2$confusion # gives us the confusion matrix for the last forest!
+
+predict.rf2 <- predict(fit.rf.train2, newdata=pc.test.sub)  # output the classes by majority vote using all the trees evaluated with testing data
+sum(data2.test$rating != predict.rf2)/nrow(data2.test)
+
+```
+iii. What is the testing error? Is this testing error better than that obtained using the original x's?
+The testing error is 0.258, this is not better than the obtained using the original x's
+```{r}
+sum(data2.test$rating != predict.rf2)/nrow(data2.test)
+
+```
 ## 6. Ensemble model
 
 i. Take average of some of the  models built above (also try all of them) and this gives us the fifth model. Report it's testing error. (Do you have more models to be bagged, try it.)
+```{r}
 
+
+```
 
 ## 7. Final model
 
 Which classifier(s) seem to produce the least testing error? Are you surprised? Report the final model and accompany the validation error. Once again this is THE only time you use the validation data set.  For the purpose of prediction, comment on how would you predict a rating if you are given a review (not a tm output) using our final model? 
+```{r}
 
+
+```
 
 
 
