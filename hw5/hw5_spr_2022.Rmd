@@ -410,9 +410,11 @@ Get a training data with 13000 reviews and the 5000 reserved as the testing data
 ```{r split data}
 set.seed(1)
 n <- nrow(data2)
-test.index <- sample(n,13000)
-data2.test <- data2[test.index, -c(1:2)] # only keep rating and the texts
+test_vali.index <- sample(n, 7000)
+test.index <- sample(test_vali.index, 5000)
+data2.test <- data2[test.index , -c(1:2)] # only keep rating and the texts
 data2.train <- data2[-test.index, -c(1:2)]
+data2.validation <- data2[sample(test_vali.index, 2000), -c(1:2)]
 dim(data2.train)
 
 ```
@@ -481,7 +483,7 @@ result.glm.coef <- coef(result.glm)
 sort(result.glm.coef, decreasing = T)[1:2]
 
 ```
-The leading 2 words are refresh with coefficient of 3.93 and gem with coefficient of 2.78. There are the two words that are most likely positively related to the probability of being a good review.
+The leading 2 words are refresh with coefficient of 2.98 and delight with coefficient of 2.13. There are the two words that are most likely positively related to the probability of being a good review.
 
 b) Make a word cloud with the top 100 positive words according to their coefficients. Interpret the cloud briefly.
 ```{r}
@@ -527,7 +529,7 @@ iii. Using majority votes find the testing errors
 	ii) From logistic regression in 4)
 	iii) Which one is smaller?
 	
-glm ROC is 0.8238, smaller than lasso ROC 0.9253
+glm ROC is 0.8545, smaller than lasso ROC 0.9276
 	
 ```{r testing error}
 #Firest testing error of the lasso fit
@@ -569,8 +571,8 @@ fit.rf.train$predicted[1:100] # majority vote
 fit.rf.train$confusion # gives us the confusion matrix for the last forest!
 
 predict.rf <- predict(fit.rf.train, newdata=data2.test)  # output the classes by majority vote using all the trees evaluated with testing data
-mean(data2.test$rating != predict.rf) 
-#MCE is .156 which is closed to OOB error of .0.166
+mean(data2.test$rating != predict.rf)
+
 
 ```
 
@@ -666,13 +668,36 @@ sum(data2.test$rating != predict.rf2)/nrow(data2.test)
 
 i. Take average of some of the  models built above (also try all of them) and this gives us the fifth model. Report it's testing error. (Do you have more models to be bagged, try it.)
 ```{r}
+rf1 <- data.frame(predict.rf)
+rf1 <- cbind(docs = rownames(rf1), rf1)
+rownames(rf1) <- 1:nrow(rf1)
 
+lasso <- data.frame(predict.lasso)
+lasso <- cbind(docs = rownames(lasso), lasso)
+rownames(lasso) <- 1:nrow(lasso)
+
+glm <- data.frame(predict.glm)
+glm  <- cbind(docs = rownames(glm), glm)
+rownames(glm) <- 1:nrow(glm)
+
+newmodel <- merge(rf1, lasso, by = 'docs')
+newmodel <- merge(newmodel, glm, by = 'docs')
+newmodel$predict.rf <- as.integer(newmodel$predict.rf) - 1
+newmodel$lambda.1se <- as.integer(newmodel$lambda.1se)
+newmodel$predict.glm <- as.integer(newmodel$predict.glm)
+
+newmodel$average <- rowMeans(newmodel[,2:4])
+newmodel$cat <- ifelse(newmodel$average > 0.5, 1, 0)
+
+mean(data2.test$rating != newmodel$cat)
 
 ```
 
 ## 7. Final model
 
 Which classifier(s) seem to produce the least testing error? Are you surprised? Report the final model and accompany the validation error. Once again this is THE only time you use the validation data set.  For the purpose of prediction, comment on how would you predict a rating if you are given a review (not a tm output) using our final model? 
+
+Random Forest with 100 trees seem to produce the least testing error
 ```{r}
 
 
