@@ -536,7 +536,7 @@ Brief comments on the data cleaning process:
 
 ```{r Data Exploration: Load data, eval = TRUE}
 # load pre-cleaned data to enable faster knitting
-data_full_clean <- fread("data/data_final.csv")
+data_full_clean <- fread("data_final.csv")
 
 # minor data cleaning to fix issues with fread
 data_full_clean <- data_full_clean %>% 
@@ -582,7 +582,7 @@ table2 <- xtable(skimtable_factor)
 ```{r Data Exploration: Data Visualization (data prep), eval=TRUE}
 # load zip code and county data (for crosswalk to add counties)
 zip_to_county_data <-
-  read_excel("data/ZIP_COUNTY_092021.xlsx") %>%
+  read_excel("ZIP_COUNTY_092021.xlsx") %>%
   select(1, 2) %>% 
   # limit to unique zip codes (bc several zip codes lie in multiple counties)
   distinct_at(vars(ZIP),.keep_all = T)
