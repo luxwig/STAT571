@@ -536,7 +536,10 @@ Brief comments on the data cleaning process:
 
 ```{r Data Exploration: Load data, eval = TRUE}
 # load pre-cleaned data to enable faster knitting
-data_full_clean <- fread("data_final.csv")
+#data_full_clean <- fread("data_final.csv")
+
+# load a subset of the data since github can only store smaller files
+data_full_clean <- fread("data_final_sub.csv")
 
 # minor data cleaning to fix issues with fread
 data_full_clean <- data_full_clean %>% 
@@ -710,12 +713,12 @@ train_split <- function(data,n1,n2,test_full) {
   return(train_sub)
 }
 
-# Set sampling parameters
-n1 <- 100000
-n2 <- 35000
-# # To test if the code works, please run below:
-# n1 <- 1000
-# n2 <- 350
+# # Set sampling parameters
+# n1 <- 100000
+# n2 <- 35000
+# To test if the code works, please run below rather than above
+n1 <- 1000
+n2 <- 350
 
 # Analysis - target variable: binary indicator for 2020 donation behavior
 # test split
